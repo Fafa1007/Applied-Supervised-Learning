@@ -1,0 +1,16 @@
+Version: 1.0
+ProjectId: c7b30dbb-2c0e-498e-8abc-9b5882b826ac
+
+RestoreWorkspace: Default
+SaveWorkspace: Default
+AlwaysSaveHistory: Default
+
+EnableCodeIndexing: Yes
+UseSpacesForTab: Yes
+NumSpacesForTab: 2
+Encoding: UTF-8
+
+RnwWeave: Sweave
+LaTeX: pdfLaTeX
+
+ProjectName: Applied Supervised Learning
