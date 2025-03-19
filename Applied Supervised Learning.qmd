@@ -1,11 +1,7 @@
----
-title: "Analytics Assignment 1"
----
+# A classification problem– Predicting online shoppers’ intention
 
-## Quarto
+The goal of this exercise is to predict whether or not online shoppers will finalise a transaction, based on data gathered about their browsing session. Therefore, the target variable Revenue– is binary. The data were first presented and analysed by Sakar et al. (2018); descriptions of all 17 features can be found in this paper, although some variables have been removed and others adjusted in order to simplify the analysis a bit. Several publications have subsequently analysed these data, including Mostafa et al. (2024) and Swetha et al. (2024). The aim is to recreate some of their results. Note, however, that you will not be graded on the accuracy of the results, but rather by the procedure followed and the clarity in communication and presentation thereof.
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+The dataset has been split into a training set and validation set (i.e. online_shopping_train.csv and online_shopping_valid.csv). These files must be read into R as is, i.e. the spreadsheets may not be edited at all.
 
-```{r}
-1 + 1
-```
+Provide a brief introduction to the report; a reader should be able to comprehend the task at hand without having seen this set of instructions. Although an exploration/description of the features is not required, a brief section on this may be included. If you do, your discussion should focus only on aspects that pertain to this exercise
