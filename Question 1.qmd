@@ -1,7 +1,5 @@
 # Question 1 - Modelling
 
-#hi Chris
-
 ```{r}
 train <- read.csv("online_shopping_train.csv")
 test <- read.csv("online_shopping_testing.csv")
