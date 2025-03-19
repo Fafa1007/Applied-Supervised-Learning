@@ -10,7 +10,7 @@ head(train)
 First convert categorical variables into factor type, stating for which features this was done.
 
 ```{r}
-factor_cols <- c("Administrative", "Informational", "ProductRelated", "SpecialDay", "Month", "OperatingSystems", "Browser", "VisitorType", "Weekend")
+factor_cols <- c("Administrative", "Informational", "ProductRelated", "SpecialDay", "Month", "OperatingSystems", "Browser", "VisitorType", "Weekend", "Revenue")
 
 scale_cols <- c("Administrative_Duration", "Informational_Duration", "ProductRelated_Duration","BounceRates", "ExitRates", "PageValues")
 
@@ -49,20 +49,26 @@ log_mod1 %>%
 ```{r}
 library(glmnet)
 library(plotmo)
+library(glmnetUtils)
 
-# Fit the lasso (L1 regularisation) and plot using plotmo
-train_l1 <- glmnet(x_train, as.matrix(y_train), alpha = 1, standardize = T, family = 'binomial')
-plot_glmnet(train_l1, xvar = 'norm')
+elasticnet <- cva.glmnet(as.numeric(Revenue) ~ ., valid, alpha = seq(0, 1, 0.1))
+plot(elasticnet, main ="Cross Validation Error as lambda increases for 
+different fixed values of alpha")
 ```
 
 ```{r}
-library(glmnet)
-library(plotmo)
+alphas <- elasticnet$alpha #Just extracting the alphas we specified
+cv_mses <- sapply(elasticnet$modlist,
+  function(mod) min(mod$cvm) #Across the list of models, extract the minimum CV MS
+  )
 
-# Fit the ridge (L2 regularisation) and plot using plotmo
-train_l2 <- glmnet(x_train, as.matrix(y_train), alpha = 0,standardize = T, family = 'binomial')
-plot_glmnet(train_l2, xvar = 'lambda')
+lowest_mse <- min(cv_mses)
+best_alpha <- alphas[which.min(cv_mses)]
+print(paste("The lowest CV MSE is", lowest_mse))
+print(paste("The Alpha corresponding to this minumum is", best_alpha))
 
-# Determine the appropriate lamda level using CV with MSE as the loss function
-train_l2_cv <- cv.glmnet(as.matrix(x_valid), as.numeric(y_valid[[1]]), alpha = 0, nfolds = 10, type.measure = 'mse', standardize = T)
+plot(alphas, cv_mses, 'b', lwd = 2, pch = 16, col = 'navy', xlab = expression(alpha), ylab = 'CV MSE') #Scale is crucial, this is still very granular!
+abline(v = best_alpha, lty = 3, col = 'red')
 ```
+
+In other words,
