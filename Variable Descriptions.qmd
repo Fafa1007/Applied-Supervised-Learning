@@ -1,0 +1,108 @@
+---
+title: "Variable Info"
+format: html
+---
+
+## Variables
+
+### Numerical Features
+
+1.  **Administrative**:
+
+    -   **Description**: The number of pages visited by the user related to account management (e.g., login, account settings).
+
+    -   **Intuition**: Users who visit more administrative pages might be more engaged or returning users, which could indicate a higher likelihood of purchasing.
+
+2.  **Administrative Duration**:
+
+    -   **Description**: The total time (in seconds) spent by the user on administrative pages.
+
+    -   **Intuition**: Spending more time on administrative tasks might indicate a user who is serious about their account, possibly preparing to make a purchase.
+
+3.  **Informational**:
+
+    -   **Description**: The number of pages visited by the user related to website information (e.g., FAQs, contact info).
+
+    -   **Intuition**: Users visiting informational pages might be gathering information before making a decision, which could indicate intent to purchase.
+
+4.  **Informational Duration**:
+
+    -   **Description**: The total time (in seconds) spent by the user on informational pages.
+
+    -   **Intuition**: Spending more time on informational pages might indicate a user who is researching the site or products, which could be a precursor to purchasing.
+
+5.  **Product Related**:
+
+    -   **Description**: The number of product-related pages visited by the user (e.g., product details, reviews).
+
+    -   **Intuition**: Users who view more product-related pages are likely more interested in purchasing, as they are actively exploring products.
+
+6.  **Product Related Duration**:
+
+    -   **Description**: The total time (in seconds) spent by the user on product-related pages.
+
+    -   **Intuition**: Spending more time on product pages suggests a higher interest in the products, which could lead to a purchase.
+
+7.  **Bounce Rate**:
+
+    -   **Description**: The **bounce rate** is the percentage of visitors who land on a page (usually the entry page) and leave the site **without interacting further** (e.g., without clicking on any other pages or triggering any additional requests to the server)
+
+    -   **Intuition**: A high bounce rate might indicate disinterest or dissatisfaction, while a low bounce rate suggests engagement.
+
+8.  **Exit Rate**:
+
+    -   **Description**: The **exit rate** is the percentage of users who leave the site **after viewing a specific page**, regardless of whether they interacted with other pages before that.
+
+    -   **Intuition**: A high exit rate might indicate that users are leaving the site after viewing certain pages, which could signal a lack of interest or intent to purchase.
+
+9.  **Page Value**:
+
+    -   **Description**: The average value of the pages visited by the user before completing a transaction. This metric is provided by Google Analytics.
+
+    -   **Intuition**: Pages with higher values are more likely to lead to a purchase, so users visiting high-value pages might have a higher purchasing intent.
+
+10. **Special Day**:
+
+    -   **Description**: Indicates how close the visit date is to a special day (e.g., Valentine’s Day, Mother’s Day). The value ranges from 0 (not close to a special day) to 1 (on a special day).
+
+    -   **Intuition**: Users are more likely to make purchases close to special days, so this feature helps capture seasonal purchasing behavior.
+
+### Categorical Variables
+
+1.  **Month**:
+
+    -   **Description**: The month in which the visit occurred.
+
+    -   **Intuition**: Purchasing behavior might vary by month due to seasonal trends, holidays, or promotions.
+
+<!-- -->
+
+1.  **OperatingSystems**:
+
+    -   **Description**: The operating system used by the visitor (e.g., Windows, macOS, Linux).
+
+    -   **Intuition**: Different operating systems might correlate with different user behaviors or purchasing patterns.
+
+2.  **Browser**:
+
+    -   **Description**: The browser used by the visitor (e.g., Chrome, Firefox, Safari).
+
+    -   **Intuition**: Browser choice might influence user experience, which could affect purchasing behavior.
+
+3.  **VisitorType**:
+
+    -   **Description**: The type of visitor (e.g., new visitor, returning visitor, other).
+
+    -   **Intuition**: Returning visitors are more likely to make purchases compared to new visitors.
+
+4.  **Weekend**:
+
+    -   **Description**: Indicates whether the visit occurred on a weekend (1) or a weekday (0).
+
+    -   **Intuition**: Users might have more time to browse and shop on weekends, which could affect purchasing behavior.
+
+5.  **Revenue**:
+
+    -   **Description**: The target variable indicating whether the visit resulted in a purchase (1) or not (0).
+
+    -   **Intuition**: This is the label used to train the model to predict purchasing intention.
