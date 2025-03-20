@@ -10,9 +10,9 @@ head(train)
 First convert categorical variables into factor type, stating for which features this was done.
 
 ```{r}
-factor_cols <- c("Administrative", "Informational", "ProductRelated", "SpecialDay", "Month", "OperatingSystems", "Browser", "VisitorType", "Weekend", "Revenue")
+factor_cols <- c("Month", "OperatingSystems", "Browser", "VisitorType", "Weekend", "Revenue")
 
-scale_cols <- c("Administrative_Duration", "Informational_Duration", "ProductRelated_Duration","BounceRates", "ExitRates", "PageValues")
+scale_cols <- c("Administrative","Administrative_Duration", "Informational", "Informational_Duration","ProductRelated","SpecialDay", "ProductRelated_Duration","BounceRates", "ExitRates", "PageValues")
 
 train[factor_cols] <- lapply(train[factor_cols], factor)
 train[scale_cols] <- lapply(train[scale_cols], scale)
@@ -84,17 +84,17 @@ library(glmnet)
 library(plotmo)
 library(glmnetUtils)
 
-elasticnet <- cva.glmnet(as.numeric(Revenue) ~ ., valid, alpha = seq(0, 1, 0.1))
+elasticnet <- cva.glmnet(as.numeric(Revenue) ~ ., train, alpha = seq(0, 1, 0.1), nfolds = 10)
 plot(elasticnet, main ="Cross Validation Error as lambda increases for 
 different fixed values of alpha")
 ```
 
 ```{r}
-alphas <- elasticnet$alpha #Just extracting the alphas we specified
+alphas <- elasticnet$alpha 
 cv_mses <- sapply(elasticnet$modlist,
-  function(mod) min(mod$cvm) #Across the list of models, extract the minimum CV MS
+  function(mod) min(mod$cvm) 
   )
-
+mod <- elasticnet$
 lowest_mse <- min(cv_mses)
 best_alpha <- alphas[which.min(cv_mses)]
 print(paste("The lowest CV MSE is", lowest_mse))
