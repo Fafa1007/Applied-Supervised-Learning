@@ -30,7 +30,7 @@ test[scale_cols] <- lapply(test[scale_cols], scale)
 
 ------------------------------------------------------------------------
 
-# Logistic regression with a linear decision boundary.
+# Question 1: Logistic regression with a linear decision boundary.
 
 Apply elastic-net regularization to this model, motivating for the choice of α and λ.
 
@@ -40,8 +40,8 @@ library(knitr)
 library(broom)
 
 # logistic regression model to the entire datase
-log_mod1 <- glm(Revenue ~ ., family = binomial,data = train)
-log_mod1 %>% 
+log_mod <- glm(Revenue ~ ., family = binomial,data = train)
+log_mod %>% 
   tidy() %>%
   kable(digits = 2, caption = 'Saturated logistic regression model fitted to the online shopping dataset')
 ```
@@ -97,8 +97,11 @@ cv_mses <- sapply(elasticnet$modlist,
 mod <- elasticnet$
 lowest_mse <- min(cv_mses)
 best_alpha <- alphas[which.min(cv_mses)]
+best_lambda <- round(elasticnet$modlist[[which.min(cv_mses)]]$lambda.min,5)
+
 print(paste("The lowest CV MSE is", lowest_mse))
 print(paste("The Alpha corresponding to this minumum is", best_alpha))
+print(paste("The Lamda acorresponding to this minumum is", best_lambda))
 
 plot(alphas, cv_mses, 'b', lwd = 2, pch = 16, col = 'navy', xlab = expression(alpha), ylab = 'CV MSE') #Scale is crucial, this is still very granular!
 abline(v = best_alpha, lty = 3, col = 'red')
@@ -108,35 +111,27 @@ abline(v = best_alpha, lty = 3, col = 'red')
 
 ------------------------------------------------------------------------
 
-# Question 2
+# Question 2: Logistic regression with a non-linear decision boundary.
 
-Logistic regression with a non-linear decision boundary. You may specify the model and regularise (or not) in any way you wish, just be sure to clearly state your final model.
+You may specify the model and regularise (or not) in any way you wish, just be sure to clearly state your final model.
 
 ```{r}
-library(ISLR)
-library(GGally)
-library(dplyr)
-library(ggplot2)
-library(patchwork)
+# logistic regression model to the entire datase
+log_mod <- glm(Revenue ~ ., family = binomial,data = train)
+log_mod %>% 
+  tidy() %>%
+  kable(digits = 2, caption = 'Saturated logistic regression model fitted to the online shopping dataset')
 
-dat <- train
-
-# Not Working
-dat %>%
-  select(-Administrative,-Informational, -ProductRelated, -SpecialDay, -Month, -OperatingSystems, -Browser, -VisitorType, -Weekend) %>%
-  ggpairs(mapping = aes(colour = Revenue, alpha = 0.5), legend =1, lower = list(continuous = "points", alpha = 0.5), cardinality_threshold = 50)+
-  scale_alpha_identity()
-
-
-plot(dat$Administrative_Duration, dat$Informational_Duration)
 ```
 
 ```{r}
+# Explanatory Data Analysis for Non-linear Relationships
 library(ggplot2)
 library(patchwork)
 
+# Choose the variables to plot out by checking the significance level of the variables in the glm output
 dat <- train
-scale_cols <- c("Administrative_Duration", "Informational_Duration", "ProductRelated_Duration", "BounceRates")
+scale_cols <- c("Informational", "ProductRelated_Duration", "ExitRates", "PageValues")
 
 # Generate all pairwise combinations of variables
 combinations <- expand.grid(scale_cols, scale_cols, stringsAsFactors = FALSE)
@@ -165,8 +160,78 @@ combined_plot <- wrap_plots(plot_list, ncol = 3)  # Arrange in 3 columns
 combined_plot
 ```
 
+```{r}
+# Polynomial Logistic Regression
+poly_log1 <- glm(Revenue ~ 
+            Informational + I(Informational^2) + I(Informational^3) +I(Informational^4) + 
+            ProductRelated_Duration + I(ProductRelated_Duration^2) + I(ProductRelated_Duration^3) + I(ProductRelated_Duration^4) +
+            ExitRates + I(ExitRates^2) + I(ExitRates^3) + I(ExitRates^4) + 
+            PageValues + I(PageValues^2) + I(PageValues^3) + I(PageValues^4) + .
+            ,data = train, family = 'binomial')
+poly_log1 %>% 
+  tidy() %>%
+  kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using all the varibles')
+
+poly_log2 <- glm(Revenue ~ 
+            Informational + I(Informational^2) + I(Informational^3) +I(Informational^4) + 
+            ProductRelated_Duration + I(ProductRelated_Duration^2) + I(ProductRelated_Duration^3) + I(ProductRelated_Duration^4) +
+            ExitRates + I(ExitRates^2) + I(ExitRates^3) + I(ExitRates^4) + 
+            PageValues + I(PageValues^2) + I(PageValues^3) + I(PageValues^4) 
+            ,data = train, family = 'binomial')
+poly_log2 %>% 
+  tidy() %>%
+  kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using only the polynomial variables')
+```
+
 ------------------------------------------------------------------------
 
-# Question 3
+# Question 4: A classification tree.
 
-K-Nearest Neighbours (KNN), motivating for the choice of k. The choice of features to include is up to you, and may be informed by any subsequent analysis (in which case, refer ahead to that question).
+Apply appropriate pruning and decide (with motivation) on a tree size.
+
+```{r}
+library(tree)
+# First, grow a slightly larger tree
+shopping_bigtree <- tree(Revenue ~ ., data = train,
+                        control = tree.control(nobs = nrow(na.omit(train)),
+                                               mindev = 0.005))
+
+# CV to find the best number of tree nodes
+set.seed(28)
+shopping_cv <- cv.tree(shopping_bigtree, FUN = prune.misclass) 
+#Use classification error rate for pruning
+
+# Make the CV plot
+plot(shopping_cv$size, shopping_cv$dev, type = 'o',
+     pch = 16, col = 'navy', lwd = 2,
+     xlab = 'Number of terminal nodes', ylab='CV error')
+
+shopping_cv$k[1] <- 0 #Don't want no -Inf
+alpha <- round(shopping_cv$k,1)
+axis(3, at = shopping_cv$size, lab = alpha, cex.axis = 0.8)
+mtext(expression(alpha), 3, line = 2.5, cex = 1.2)
+axis(side = 1, at = 1:max(shopping_cv$size))
+
+T <- shopping_cv$size[which.min(shopping_cv$dev)] #The minimum CV Error
+abline(v = T, lty = 2, lwd = 2, col = 'red')
+
+# Plot the pruned Tree
+shopping_pruned <- prune.misclass(shopping_bigtree, best = T)
+plot(shopping_pruned)
+text(shopping_pruned, pretty = 0)
+```
+
+------------------------------------------------------------------------
+
+# Question 5:
+
+Motivating clearly for your selected hyperparameters
+
+```{r}
+library(randomForest)
+shopping_rf <- randomForest(Revenue ~ ., data = train,
+                           ntree = 250,
+                           importance = T,
+                           na.action = na.exclude)
+shopping_rf
+```

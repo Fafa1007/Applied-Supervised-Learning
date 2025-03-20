@@ -75,33 +75,31 @@ format: html
 
     -   **Intuition**: Purchasing behavior might vary by month due to seasonal trends, holidays, or promotions.
 
-<!-- -->
-
-1.  **OperatingSystems**:
+2.  **OperatingSystems**:
 
     -   **Description**: The operating system used by the visitor (e.g., Windows, macOS, Linux).
 
     -   **Intuition**: Different operating systems might correlate with different user behaviors or purchasing patterns.
 
-2.  **Browser**:
+3.  **Browser**:
 
     -   **Description**: The browser used by the visitor (e.g., Chrome, Firefox, Safari).
 
     -   **Intuition**: Browser choice might influence user experience, which could affect purchasing behavior.
 
-3.  **VisitorType**:
+4.  **VisitorType**:
 
     -   **Description**: The type of visitor (e.g., new visitor, returning visitor, other).
 
     -   **Intuition**: Returning visitors are more likely to make purchases compared to new visitors.
 
-4.  **Weekend**:
+5.  **Weekend**:
 
     -   **Description**: Indicates whether the visit occurred on a weekend (1) or a weekday (0).
 
     -   **Intuition**: Users might have more time to browse and shop on weekends, which could affect purchasing behavior.
 
-5.  **Revenue**:
+6.  **Revenue**:
 
     -   **Description**: The target variable indicating whether the visit resulted in a purchase (1) or not (0).
 
