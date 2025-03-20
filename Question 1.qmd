@@ -47,6 +47,39 @@ log_mod1 %>%
 ```
 
 ```{r}
+# Ridge L2 Regularisation
+library(glmnet)
+ridge <- glmnet(x_train, as.numeric(unlist(y_train)), alpha = 0, standardize = T,lambda = exp(seq(-1, 4, length.out = 100)))
+plot(ridge, xvar = 'lambda', label = T)
+
+# Cross Validation
+set.seed(1)
+ridge_cv <- cv.glmnet(as.matrix(x_valid), as.numeric(unlist(y_valid)),
+            alpha = 0, nfolds = 10, type.measure = 'class', standardize = T, ,
+            lambda = exp(seq(-10, 10, length.out = 100)))
+plot(ridge_cv)
+abline(h = ridge_cv$cvup[which.min(ridge_cv$cvm)], lty = 2)
+
+round(cbind(coef(ridge_cv, s = 'lambda.min'), coef(ridge_cv, s = 'lambda.1se')), 3)
+```
+
+```{r}
+# Lasso L1 Regularisation 
+library(glmnet)
+lasso <- glmnet(x_train, as.numeric(unlist(y_train)), alpha = 1, standardize = T)
+plot(lasso, xvar = 'lambda', label = T)
+
+# Cross Validation to find best lambda
+set.seed(1)
+lasso_cv <- cv.glmnet(as.matrix(x_train), as.numeric(unlist(y_train)),
+                  alpha = 1, nfolds = 10, type.measure = 'class', standardize = T)
+plot(lasso_cv)
+
+round(coef(lasso_cv, s = 'lambda.1se'), 3)
+```
+
+```{r}
+# Elastic Net
 library(glmnet)
 library(plotmo)
 library(glmnetUtils)
@@ -71,4 +104,69 @@ plot(alphas, cv_mses, 'b', lwd = 2, pch = 16, col = 'navy', xlab = expression(al
 abline(v = best_alpha, lty = 3, col = 'red')
 ```
 
-In other words,
+\newpage
+
+------------------------------------------------------------------------
+
+# Question 2
+
+Logistic regression with a non-linear decision boundary. You may specify the model and regularise (or not) in any way you wish, just be sure to clearly state your final model.
+
+```{r}
+library(ISLR)
+library(GGally)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+dat <- train
+
+# Not Working
+dat %>%
+  select(-Administrative,-Informational, -ProductRelated, -SpecialDay, -Month, -OperatingSystems, -Browser, -VisitorType, -Weekend) %>%
+  ggpairs(mapping = aes(colour = Revenue, alpha = 0.5), legend =1, lower = list(continuous = "points", alpha = 0.5), cardinality_threshold = 50)+
+  scale_alpha_identity()
+
+
+plot(dat$Administrative_Duration, dat$Informational_Duration)
+```
+
+```{r}
+library(ggplot2)
+library(patchwork)
+
+dat <- train
+scale_cols <- c("Administrative_Duration", "Informational_Duration", "ProductRelated_Duration", "BounceRates")
+
+# Generate all pairwise combinations of variables
+combinations <- expand.grid(scale_cols, scale_cols, stringsAsFactors = FALSE)
+
+# Filter out combinations where the variables are the same
+combinations <- combinations[combinations$Var1 != combinations$Var2, ]
+
+# Create a list to store individual scatterplots
+plot_list <- list()
+
+# Loop through each combination and create a scatterplot
+for (i in 1:nrow(combinations)) {
+  var1 <- combinations$Var1[i]
+  var2 <- combinations$Var2[i]
+  
+  p <- ggplot(dat, aes(x = .data[[var1]], y = .data[[var2]], color = Revenue)) +
+    geom_point(alpha = 0.5) +
+    labs(x = var1, y = var2) +
+    theme_minimal() +
+    theme(legend.position = "none")  # Remove legend for individual plots
+  plot_list[[paste(var1, var2, sep = "_")]] <- p
+}
+
+# Combine the plots into a grid using patchwork
+combined_plot <- wrap_plots(plot_list, ncol = 3)  # Arrange in 3 columns
+combined_plot
+```
+
+------------------------------------------------------------------------
+
+# Question 3
+
+K-Nearest Neighbours (KNN), motivating for the choice of k. The choice of features to include is up to you, and may be informed by any subsequent analysis (in which case, refer ahead to that question).
