@@ -1,5 +1,7 @@
 # Classification Tree
 
+Apply 10-fold cross-validation throughout to measure classification accuracy
+
 ## Modelling
 
 Finding and motivating our choice of the tree size we wish to prune our over fitted tree towards.
@@ -12,7 +14,7 @@ tree_overfit <- tree(Revenue ~ ., data = train,
                                                mindev = 0.005))
 
 # Second, CV to find the best number of tree nodes to prune
-tree_cv <- cv.tree(tree_overfit, FUN = prune.misclass) 
+tree_cv <- cv.tree(tree_overfit, FUN = prune.misclass, k = 10) 
 #Use classification error rate for pruning
 ```
 
@@ -28,8 +30,9 @@ axis(3, at = tree_cv$size, lab = alpha, cex.axis = 0.8)
 mtext(expression(alpha), 3, line = 2.5, cex = 1.2)
 axis(side = 1, at = 1:max(tree_cv$size))
 
+# T is the hyper parameter for the number of terminal nodes
 T <- tree_cv$size[which.min(tree_cv$dev)] #The minimum CV Error
-abline(v = tree_size, lty = 2, lwd = 2, col = 'red')
+abline(v = T, lty = 2, lwd = 2, col = 'red')
 ```
 
 Pruned Tree Model
@@ -39,7 +42,7 @@ Pruned Tree Model
 pruned_tree <- prune.misclass(tree_overfit, best = T)
 plot(pruned_tree)
 text(pruned_tree, pretty = 0)
-
+pruned_tree
 ```
 
 ------------------------------------------------------------------------
@@ -55,13 +58,42 @@ text(pruned_tree, pretty = 0)
 ## Model Evaluation
 
 ```{r}
-# Firstly, get the Predictions / Probabilities from the model
-shopping_tree_pred  <- predict(pruned_tree, newdata = valid)
-shopping_tree_mis <- mean(as.numeric(unlist(y_valid)) != as.numeric(shopping_tree_pred))
-```
+library(MLmetrics)
+library(caret)
+library(knitr)
+library(dplyr)
+library(ROCR)
 
-```{r}
+# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from the regularised logistic model
+pred_class <- predict(pruned_tree,x_valid, type = "class")
 
+# Secondly, create a confusion matrix
+yhat <- ifelse(pred_probabilities == 1,'Revenue', "No Revenue")
+y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 'Revenue', "No Revenue"))
+cat("Confusion Matrix using Predicted Probabilities")
+(confmat <- table(yhat, y, dnn = c('Predicted label', 'True label')))
+
+# Thirdly, get the Accuracy, F1 Score, Precision, Recall, Specificity which we can calculate from the confusion matrix .... or us the caret package 
+caretmat <- confusionMatrix(as.factor(yhat), as.factor(y), positive = 'Revenue')
+caretmat 
+
+Sensitivity <- caretmat$byClass["Sensitivity"]  # True Positive Rate (Recall)
+Specificity <- caretmat$byClass["Specificity"]  # True Negative Rate
+Precision <- caretmat$byClass["Precision"]      # Positive Predictive Value
+F1_score <- caretmat$byClass["F1"]              # F1 Score
+Accuracy <- caretmat$overall["Accuracy"]        # Accuracy
+Missclassification_Rate <- mean(yhat != y)
+
+# AUC (only works with binary data)
+yhat <- ifelse(pred_probabilities == 1, 1, 0)
+y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 1, 0))
+pred_obj <- prediction(y, yhat)
+ROC_AUC <- performance(pred_obj, measure = "auc")@y.values[[1]]
+
+# Lastly, put them all into a table
+compar <- rbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
+colnames(compar) <- c("Values")
+compar %>% kable(caption = "Logistic Regression with Elastic Regularisation Evaluation Metric")
 ```
 
 ------------------------------------------------------------------------

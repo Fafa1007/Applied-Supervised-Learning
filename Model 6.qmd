@@ -1,5 +1,7 @@
 # xgBoost Tree Model
 
+Apply 10-fold cross-validation throughout to measure classification accuracy
+
 ## Modelling
 
 ------------------------------------------------------------------------

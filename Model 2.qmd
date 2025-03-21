@@ -1,5 +1,7 @@
 # Logistic Regression With A Non-Linear Decision Boundary
 
+Apply 10-fold cross-validation throughout to measure classification accuracy
+
 ## Modelling
 
 You may specify the model and regularize (or not) in any way you wish, just be sure to clearly state your final model.
@@ -65,8 +67,7 @@ library(dplyr)
 library(ROCR)
 
 # Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from the regularised logistic model
-x_valid_dummies <- makeX(x_valid)
-pred_probabilities <- predict(poly_log1, newx = as.matrix(x_valid_dummies), type = "response")
+pred_probabilities <- predict(poly_log1,x_valid, type = "response")
 
 # Secondly, create a confusion matrix
 yhat <- ifelse(pred_probabilities >= 0.5,'Revenue', "No Revenue")

@@ -1,5 +1,7 @@
 # Logistic Regression With A Linear Decision Boundary (Elastic Regularisation).
 
+Apply 10-fold cross-validation throughout to measure classification accuracy
+
 ## Modelling
 
 Vanilla Logistic Regression Model
@@ -107,7 +109,7 @@ F1_score <- caretmat$byClass["F1"]              # F1 Score
 Accuracy <- caretmat$overall["Accuracy"]        # Accuracy
 Missclassification_Rate <- mean(yhat != y)
 
-# AUC
+# AUC need the values to be binary
 yhat <- ifelse(pred_probabilities >= 0.5, 1, 0)
 y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 1, 0))
 pred_obj <- prediction(y, yhat)

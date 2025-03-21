@@ -34,3 +34,14 @@ x_valid <- valid[,-16]
 test[head(factor_cols,-1)] <- lapply(test[head(factor_cols,-1)], factor)
 test[scale_cols] <- lapply(test[scale_cols], scale)
 ```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Evaluation of all Six Models
+
+```{r}
+compar <- list()
+compar <- do.call(rbind, compar)
+```
