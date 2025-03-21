@@ -1,20 +1,25 @@
 # Random Forest
+
 ## Modelling
 
-Motivating clearly for your selected hyperparameters
+Motivating clearly for our selected hyperparameters
 
 ```{r}
 library(randomForest)
 
-# Basic Random Forest
-shopping_rf <- randomForest(Revenue ~ ., data = train,
+# Firstly, fit a basic Random Forest model with default hyperparameters
+rf <- randomForest(Revenue ~ ., data = train,
                            ntree = 1000,
                            na.action = na.exclude)
 
-# Prediction
-shopping_rf_pred   <- predict(shopping_rf, newdata = valid)
-shopping_rf_mis   <- mean(as.numeric(unlist(y_valid)) != as.numeric(shopping_rf_pred))
+# Secondly, calculating the missclassification error rate on the validation set
+rf_pred   <- predict(rf, newdata = valid)
+rf_mis   <- mean(as.numeric(unlist(y_valid)) != as.numeric(rf_pred))
 ```
+
+Hyperparameter Tuned Random Forest
+
+Hyper parameter tuning on the following: **mtry** Number of variables sampled at each split, **splitrule** Rule used to determine splits at each node, **min.node.size** Minimum number of observations required in a terminal node (leaf)
 
 ```{r}
 library(randomForest)
@@ -22,30 +27,31 @@ library(caret)
 library(ranger) # built in parallelisation 
 library(dplyr)
 
-# Finding the hyper parameters
-shopping_rf_grid <- expand.grid(mtry = 2:(ncol(train) - 1),
-                               splitrule = c('gini', 'hellinger'),
-                               min.node.size = c(1, 5, 10))
+# Firstly, define a grid of hyperparameters to search over
+rf_grid <- expand.grid(mtry = 2:(ncol(train) - 1),
+             splitrule = c('gini', 'hellinger'),
+             min.node.size = c(1, 5, 10))
 
+# Secondly, set up control parameters for the training process
 ctrl <- trainControl(method = 'oob', verboseIter = F)
 
-# Use ranger to run all these models
-shopping_rf_gridsearch <- train(Revenue ~ .,
-                               data = train,
-                               method = 'ranger',
-                               num.trees = 1000,
-                               trControl = ctrl,
-                               tuneGrid = shopping_rf_grid,
-                               importance = 'impurity')
+# Thirdly, perform a grid search to find the best hyperparameters using the ranger package
+# This is also our Tuned Random Forest Model
+rf_gridsearch <- train(Revenue ~ .,
+                   data = train,
+                   method = 'ranger',
+                   num.trees = 1000,
+                   trControl = ctrl,
+                   tuneGrid = rf_grid,
+                   importance = 'impurity')
+plot(rf_gridsearch)
 
-plot(shopping_rf_gridsearch)
+#Lastly, calculating the missclassification error rate on the validation set
+rfgrid_pred <- predict(rf_gridsearch, newdata = valid)
+rf_tuned_mis <- mean(as.numeric(unlist(y_valid)) != as.numeric(rfgrid_pred))
 
-# Predictions
-shopping_rfgrid_pred <- predict(shopping_rf_gridsearch, newdata = valid)
-shopping_rf_tuned_mis <- mean(as.numeric(unlist(y_valid)) != as.numeric(shopping_rfgrid_pred))
-
-# Variance Importance PLot
-plot(varImp(shopping_rf_gridsearch))
+# Variance Importance Plot
+plot(varImp(rf_gridsearch))
 ```
 
 ------------------------------------------------------------------------
@@ -68,7 +74,7 @@ plot(varImp(shopping_rf_gridsearch))
 
 \newpage
 
-## Optimizing F1 Score 
+## Optimizing F1 Score
 
 ------------------------------------------------------------------------
 

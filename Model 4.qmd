@@ -2,7 +2,7 @@
 
 ## Modelling
 
-Apply appropriate pruning and decide (with motivation) on a tree size.
+Finding and motivating our choice of the tree size we wish to prune our over fitted tree towards.
 
 ```{r}
 library(tree)
@@ -17,7 +17,7 @@ tree_cv <- cv.tree(tree_overfit, FUN = prune.misclass)
 ```
 
 ```{r}
-# Third, make the CV plot to visually observe the best number of tree nodes to prune with the lowest cross validation error
+# Thirdly, make the CV plot to visually observe the best number of tree nodes to prune with the lowest cross validation error
 plot(tree_cv$size, tree_cv$dev, type = 'o',
      pch = 16, col = 'navy', lwd = 2,
      xlab = 'Number of terminal nodes', ylab='CV error')
@@ -32,9 +32,10 @@ T <- tree_cv$size[which.min(tree_cv$dev)] #The minimum CV Error
 abline(v = tree_size, lty = 2, lwd = 2, col = 'red')
 ```
 
+Pruned Tree Model
 
 ```{r}
-# Lastly, the pruned Tree Model
+# The pruned Tree Model
 shopping_pruned <- prune.misclass(shopping_bigtree, best = T)
 plot(shopping_pruned)
 text(shopping_pruned, pretty = 0)
@@ -52,6 +53,7 @@ text(shopping_pruned, pretty = 0)
 \newpage
 
 ## Model Evaluation
+
 ```{r}
 # Predictions
 shopping_tree_pred  <- predict(shopping_pruned, newdata = valid)
@@ -62,7 +64,7 @@ shopping_tree_mis <- mean(as.numeric(unlist(y_valid)) != as.numeric(shopping_tre
 
 \newpage
 
-## Optimizing F1 Score 
+## Optimizing F1 Score
 
 ------------------------------------------------------------------------
 

@@ -7,9 +7,9 @@ The dataset has been split into a training set and validation set (i.e. online_s
 Provide a brief introduction to the report; a reader should be able to comprehend the task at hand without having seen this set of instructions. Although an exploration/description of the features is not required, a brief section on this may be included. If you do, your discussion should focus only on aspects that pertain to this exercise
 
 ```{r}
-train <- read.csv("online_shopping_train.csv")
-test <- read.csv("online_shopping_testing.csv")
-valid <- read.csv("online_shopping_valid.csv")
+train <- read.csv("_raw_data/online_shopping_train.csv")
+test <- read.csv("_raw_data/online_shopping_testing.csv")
+valid <- read.csv("_raw_data/online_shopping_valid.csv")
 head(train)
 ```
 
