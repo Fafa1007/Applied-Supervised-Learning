@@ -1,7 +1,36 @@
 # A classification problem– Predicting online shoppers’ intention
 
-The goal of this exercise is to predict whether or not online shoppers will finalise a transaction, based on data gathered about their browsing session. Therefore, the target variable Revenue– is binary. The data were first presented and analysed by Sakar et al. (2018); descriptions of all 17 features can be found in this paper, although some variables have been removed and others adjusted in order to simplify the analysis a bit. Several publications have subsequently analysed these data, including Mostafa et al. (2024) and Swetha et al. (2024). The aim is to recreate some of their results. Note, however, that you will not be graded on the accuracy of the results, but rather by the procedure followed and the clarity in communication and presentation thereof.
+The goal of this exercise is to predict whether or not online shoppers will finalize a transaction, based on data gathered about their browsing session. Therefore, the target variable Revenue– is binary. The data were first presented and analysed by Sakar et al. (2018); descriptions of all 17 features can be found in this paper, although some variables have been removed and others adjusted in order to simplify the analysis a bit. Several publications have subsequently analysed these data, including Mostafa et al. (2024) and Swetha et al. (2024). The aim is to recreate some of their results. Note, however, that you will not be graded on the accuracy of the results, but rather by the procedure followed and the clarity in communication and presentation thereof.
 
 The dataset has been split into a training set and validation set (i.e. online_shopping_train.csv and online_shopping_valid.csv). These files must be read into R as is, i.e. the spreadsheets may not be edited at all.
 
 Provide a brief introduction to the report; a reader should be able to comprehend the task at hand without having seen this set of instructions. Although an exploration/description of the features is not required, a brief section on this may be included. If you do, your discussion should focus only on aspects that pertain to this exercise
+
+```{r}
+train <- read.csv("online_shopping_train.csv")
+test <- read.csv("online_shopping_testing.csv")
+valid <- read.csv("online_shopping_valid.csv")
+head(train)
+```
+
+First convert categorical variables into factor type, stating for which features this was done.
+
+```{r}
+factor_cols <- c("Month", "OperatingSystems", "Browser", "VisitorType", "Weekend", "Revenue")
+
+scale_cols <- c("Administrative","Administrative_Duration", "Informational", "Informational_Duration","ProductRelated","SpecialDay", "ProductRelated_Duration","BounceRates", "ExitRates", "PageValues")
+
+train[factor_cols] <- lapply(train[factor_cols], factor)
+train[scale_cols] <- lapply(train[scale_cols], scale)
+y_train <- train["Revenue"]
+x_train <- train[, -16]
+head(train)
+
+valid[factor_cols] <- lapply(valid[factor_cols], factor)
+valid[scale_cols] <- lapply(valid[scale_cols], scale)
+y_valid <- valid["Revenue"]
+x_valid <- valid[,-16]
+
+test[head(factor_cols,-1)] <- lapply(test[head(factor_cols,-1)], factor)
+test[scale_cols] <- lapply(test[scale_cols], scale)
+```

@@ -1,0 +1,86 @@
+# Logistic Regression With A Linear Decision Boundary.
+
+## Modelling
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(broom)
+
+# Vanilla logistic regression model to the entire dataset
+log_mod <- glm(Revenue ~ ., family = binomial,data = train)
+log_mod %>% 
+  tidy() %>%
+  kable(digits = 2, caption = 'Vanilla logistic regression model')
+```
+
+Apply elastic-net regularization to this model, motivating for the choice of α and λ.
+
+```{r}
+# Elastic Net
+library(glmnet)
+library(plotmo)
+library(glmnetUtils)
+
+# cv.glmnet cannot take factor variables directly, we must create explicit dummy variables
+train_dummies <- train
+train_dummies[factor_cols] <- makeX(train_dummies[factor_cols])
+
+# Cross Validation Error Against Lambda for Fixed Alpha Hyper Parameters (Plot)
+elasticnet <- cva.glmnet(as.numeric(Revenue) ~ ., train_dummies, alpha = seq(0, 1, 0.1), nfolds = 10)
+plot(elasticnet, main ="Cross Validation Error as lambda increases for 
+different fixed values of alpha")
+
+# Getting alpha and lambda hyperparameters that give the lowest CV error
+alphas <- elasticnet$alpha 
+cv_mses <- sapply(elasticnet$modlist,
+  function(mod) min(mod$cvm) 
+  )
+
+lowest_mse <- round(min(cv_mses),5)
+best_alpha <- alphas[which.min(cv_mses)]
+best_lambda <- round(elasticnet$modlist[[which.min(cv_mses)]]$lambda.min,6)
+
+print(paste("The lowest CV MSE is", lowest_mse))
+print(paste("The Alpha corresponding to this minumum is", best_alpha))
+print(paste("The Lamda acorresponding to this minumum is", best_lambda))
+
+# Plot of the lowest MSE for each alpha
+plot(alphas, cv_mses, 'b', lwd = 2, pch = 16, col = 'navy', xlab = expression(alpha), ylab = 'CV MSE') #Scale is crucial, this is still very granular!
+abline(v = best_alpha, lty = 3, col = 'red')
+```
+
+```{r}
+library(glmnet)
+
+# Logistic Regression Model With Elastic Regularisation 
+log_elas <- glmnet(x_train, as.numeric(unlist(y_train)), family = "binomial", alpha = best_alpha, lambda = best_lambda, standardize = T)
+
+plot_glmnet(log_elas, xvar = 'norm')
+
+log_elas %>% 
+  tidy() %>%
+  kable(digits = 2, caption = paste('Logistic Regression Model With Elastic Regularisation and lambda is ',best_lambda, "and alpha", best_alpha))
+```
+
+```{r}
+
+```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Inference/Interpretation
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Optimizing F1 Score 
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Prediction

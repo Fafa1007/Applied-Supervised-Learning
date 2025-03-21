@@ -1,0 +1,54 @@
+# Logistic Regression With A Non-Linear Decision Boundary
+
+## Modelling
+
+You may specify the model and regularize (or not) in any way you wish, just be sure to clearly state your final model.
+
+```{r}
+# logistic regression model to the entire datase
+log_mod <- glm(Revenue ~ ., family = binomial,data = train)
+log_mod %>% 
+  tidy() %>%
+  kable(digits = 2, caption = 'Vanilla logistic regression model')
+```
+
+```{r}
+# Polynomial Logistic Regression Models
+poly_log1 <- glm(Revenue ~ 
+            Informational + I(Informational^2) + I(Informational^3) +I(Informational^4) + 
+            ProductRelated_Duration + I(ProductRelated_Duration^2) + I(ProductRelated_Duration^3) + I(ProductRelated_Duration^4) +
+            ExitRates + I(ExitRates^2) + I(ExitRates^3) + I(ExitRates^4) + 
+            PageValues + I(PageValues^2) + I(PageValues^3) + I(PageValues^4) + .
+            ,data = train, family = 'binomial')
+poly_log1 %>% 
+  tidy() %>%
+  kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using all the varibles')
+
+poly_log2 <- glm(Revenue ~ 
+            Informational + I(Informational^2) + I(Informational^3) +I(Informational^4) + 
+            ProductRelated_Duration + I(ProductRelated_Duration^2) + I(ProductRelated_Duration^3) + I(ProductRelated_Duration^4) +
+            ExitRates + I(ExitRates^2) + I(ExitRates^3) + I(ExitRates^4) + 
+            PageValues + I(PageValues^2) + I(PageValues^3) + I(PageValues^4) 
+            ,data = train, family = 'binomial')
+poly_log2 %>% 
+  tidy() %>%
+  kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using only the polynomial variables')
+```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Inference/Interpretation
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Optimizing F1 Score 
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Prediction

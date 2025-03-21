@@ -1,0 +1,67 @@
+# Random Forest
+## Modelling
+
+Motivating clearly for your selected hyperparameters
+
+```{r}
+library(randomForest)
+
+# Basic Random Forest
+shopping_rf <- randomForest(Revenue ~ ., data = train,
+                           ntree = 1000,
+                           na.action = na.exclude)
+
+# Prediction
+shopping_rf_pred   <- predict(shopping_rf, newdata = valid)
+shopping_rf_mis   <- mean(as.numeric(unlist(y_valid)) != as.numeric(shopping_rf_pred))
+```
+
+```{r}
+library(randomForest)
+library(caret)
+library(ranger) # built in parallelisation 
+library(dplyr)
+
+# Finding the hyper parameters
+shopping_rf_grid <- expand.grid(mtry = 2:(ncol(train) - 1),
+                               splitrule = c('gini', 'hellinger'),
+                               min.node.size = c(1, 5, 10))
+
+ctrl <- trainControl(method = 'oob', verboseIter = F)
+
+# Use ranger to run all these models
+shopping_rf_gridsearch <- train(Revenue ~ .,
+                               data = train,
+                               method = 'ranger',
+                               num.trees = 1000,
+                               trControl = ctrl,
+                               tuneGrid = shopping_rf_grid,
+                               importance = 'impurity')
+
+plot(shopping_rf_gridsearch)
+
+# Predictions
+shopping_rfgrid_pred <- predict(shopping_rf_gridsearch, newdata = valid)
+shopping_rf_tuned_mis <- mean(as.numeric(unlist(y_valid)) != as.numeric(shopping_rfgrid_pred))
+
+# Variance Importance PLot
+plot(varImp(shopping_rf_gridsearch))
+```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Inference/Interpretation
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Optimizing F1 Score 
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Prediction
