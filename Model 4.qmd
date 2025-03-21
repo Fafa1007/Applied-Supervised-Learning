@@ -36,9 +36,9 @@ Pruned Tree Model
 
 ```{r}
 # The pruned Tree Model
-shopping_pruned <- prune.misclass(shopping_bigtree, best = T)
-plot(shopping_pruned)
-text(shopping_pruned, pretty = 0)
+pruned_tree <- prune.misclass(tree_overfit, best = T)
+plot(pruned_tree)
+text(pruned_tree, pretty = 0)
 
 ```
 
@@ -55,9 +55,13 @@ text(shopping_pruned, pretty = 0)
 ## Model Evaluation
 
 ```{r}
-# Predictions
-shopping_tree_pred  <- predict(shopping_pruned, newdata = valid)
+# Firstly, get the Predictions / Probabilities from the model
+shopping_tree_pred  <- predict(pruned_tree, newdata = valid)
 shopping_tree_mis <- mean(as.numeric(unlist(y_valid)) != as.numeric(shopping_tree_pred))
+```
+
+```{r}
+
 ```
 
 ------------------------------------------------------------------------

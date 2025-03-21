@@ -63,7 +63,9 @@ knn_pred <- predict(knn_cv, valid[,-16])
 knn_mse <- round(mean((as.numeric(valid$Revenue) - as.numeric(knn_pred))^2), 3)
 
 ```
+
 ### gbm attempt
+
 ```{r}
 set.seed(4026)
 titanic_gbm_grid <- expand.grid(n.trees = seq(500, 6000, 500),
@@ -82,7 +84,9 @@ titanic_gbm_grid <- expand.grid(n.trees = seq(500, 6000, 500),
 save(titanic_gbm_gridsearch, file = 'data/gbm_titanic.Rdata')
 load('data/gbm_titanic.Rdata')
 ```
+
 ### xgboost attempt 1
+
 ```{r}
 calif_xgb_grid <- expand.grid(nrounds = seq(1000, 5000, 1000),  #number of trees
                               max_depth = c(2, 5),               #interaction depth
@@ -106,7 +110,9 @@ load('data/xgb_calif_40k.Rdata')
 
 plot(calif_xgb_gridsearch)
 ```
+
 xgboost attempt final
+
 ```{r}
 #| warning: false
 
