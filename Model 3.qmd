@@ -1,6 +1,64 @@
 # K-Nearest Neighbours (KNN)
 
+#### Set-Up
+
+```{r}
+library(class)
+library(ggplot2)
+library(caret)
+library(gbm)
+library(xgboost)
+library(ROCR)
+library(dplyr)
+library(tidyverse)
+library(knitr)
+
+train <- read.csv("online_shopping_train.csv")
+test <- read.csv("online_shopping_testing.csv")
+valid <- read.csv("online_shopping_valid.csv")
+
+head(train)
+
+factor_cols <- c("Month", "OperatingSystems", "Browser", "VisitorType", "Weekend", "Revenue")
+
+scale_cols <- c("Administrative","Administrative_Duration", "Informational", "Informational_Duration","ProductRelated","SpecialDay", "ProductRelated_Duration","BounceRates", "ExitRates", "PageValues")
+
+train[factor_cols] <- lapply(train[factor_cols], factor)
+train[scale_cols] <- lapply(train[scale_cols], scale)
+y_train <- train["Revenue"]
+x_train <- train[, -16]
+
+valid[factor_cols] <- lapply(valid[factor_cols], factor)
+valid[scale_cols] <- lapply(valid[scale_cols], scale)
+y_valid <- valid["Revenue"]
+x_valid <- valid[,-16]
+
+test[head(factor_cols,-1)] <- lapply(test[head(factor_cols,-1)], factor)
+test[scale_cols] <- lapply(test[scale_cols], scale)
+```
+
 ## Modelling
+
+```{r}
+#| warning: false
+
+N <- 30
+
+knn_cv <- train(Revenue ~ ., 
+                data = train,
+                method = "knn",
+                trControl = trainControl(method = "cv", number = 10),
+                tuneGrid = expand.grid(k = 1:N))
+
+knn_pred <- knn(train = train[scale_cols],
+                test = valid[scale_cols],
+                cl = train$Revenue,
+                k = as.numeric(knn_cv$bestTune))
+
+## knn_pred <- predict(knn_cv, valid[,-16])
+
+
+```
 
 ------------------------------------------------------------------------
 
@@ -15,7 +73,24 @@
 ## Model Evaluation (ques 1 b)
 
 ```{r}
+knn_mse <- round(mean((as.numeric(valid$Revenue) - as.numeric(knn_pred))^2), 3)
 
+confmat_knn <- table(knn_pred, valid[,16], dnn = c('Predicted label', 'True label'))
+
+accuracy_knn <- (confmat_knn[1,1] + confmat_knn[2,2])/nrow(valid)
+recall_knn <- confmat_knn[2,2]/(confmat_knn[2,2]+confmat_knn[1,2])
+specificity_knn <- confmat_knn[1,1]/(confmat_knn[1,1] + confmat_knn[2,1])
+precision_knn <- confmat_knn[2,2]/(confmat_knn[2,2] + confmat_knn[2,1])
+
+f1_score_knn <- 2*(precision_knn * recall_knn)/(precision_knn + recall_knn)
+
+pred_knn <- prediction(as.numeric(knn_pred), as.numeric(valid[,16]))
+perf  <- performance(pred_knn, 'tpr', 'fpr')
+plot.new()        # Start a new plot (if needed)
+plot(perf, colorize = FALSE, col = 'black')
+lines(c(0,1), c(0,1), col = 'gray', lty = 4)
+
+auc <- performance(pred_knn, measure = 'auc')@y.values[[1]]
 ```
 
 ------------------------------------------------------------------------
@@ -24,8 +99,16 @@
 
 ## Optimizing F1 Score
 
+```{r}
+
+```
+
 ------------------------------------------------------------------------
 
 \newpage
 
 ## Prediction
+
+```{r}
+
+```
