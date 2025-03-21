@@ -9,6 +9,10 @@ library(ggplot2)
 library(caret)
 library(gbm)
 library(xgboost)
+library(ROCR)
+library(dplyr)
+library(tidyverse)
+library(knitr)
 ```
 
 ## Question 1: Modelling
@@ -62,26 +66,78 @@ knn_pred <- predict(knn_cv, valid[,-16])
 
 knn_mse <- round(mean((as.numeric(valid$Revenue) - as.numeric(knn_pred))^2), 3)
 
+confmat_knn <- table(knn_pred, valid[,16], dnn = c('Predicted label', 'True label'))
+
+accuracy_knn <- (confmat_knn[1,1] + confmat_knn[2,2])/nrow(valid)
+recall_knn <- confmat_knn[2,2]/(confmat_knn[2,2]+confmat_knn[1,2])
+specificity_knn <- confmat_knn[1,1]/(confmat_knn[1,1] + confmat_knn[2,1])
+precision_knn <- confmat_knn[2,2]/(confmat_knn[2,2] + confmat_knn[2,1])
+
+f1_score_knn <- 2*(precision_knn * recall_knn)/(precision_knn + recall_knn)
+
+pred_knn <- prediction(as.numeric(knn_pred), as.numeric(valid[,16]))
+perf  <- performance(pred_knn, 'tpr', 'fpr')
+plot.new()        # Start a new plot (if needed)
+plot(perf, colorize = FALSE, col = 'black')
+lines(c(0,1), c(0,1), col = 'gray', lty = 4)
+
+# tau = 0.5
+# points(compar[1,1] ~ compar[2,1], col = 'red', pch = 16)
+# text(compar[1,1] ~ compar[2,1], labels = 0.5, pos = 4)
+
+# tau = 0.2
+# points(compar[1,2] ~ compar[2,2], col = 'red', pch = 16)
+# text(compar[1,2] ~ compar[2,2], labels = 0.2, pos = 4)
+
+auc <- performance(pred_knn, measure = 'auc')@y.values[[1]]
+
 ```
 ### gbm attempt
 ```{r}
 set.seed(4026)
 titanic_gbm_grid <- expand.grid(n.trees = seq(500, 6000, 500),
-                                 interaction.depth = 1:5,
-                                 shrinkage = c(0.01, 0.005, 0.001),
-                                 n.minobsinnode = 1)
- 
- ctrl <-  trainControl(method = 'cv', number = 10, verboseIter = T)
- 
- titanic_gbm_gridsearch <- train(Revenue ~ ., data = train,
-                                 method = 'gbm',
-                                 distribution = 'bernoulli', #For classification
-                                 trControl = ctrl,
-                                 verbose = F,
-                                 tuneGrid = titanic_gbm_grid)
+                                interaction.depth = 1:5,
+                                shrinkage = c(0.01, 0.005, 0.001),
+                                n.minobsinnode = 1)
+
+ctrl <-  trainControl(method = 'cv', number = 10, verboseIter = T)
+
+titanic_gbm_gridsearch <- train(Revenue ~ ., data = train,
+                                method = 'gbm',
+                                distribution = 'bernoulli', #For classification
+                                trControl = ctrl,
+                                verbose = F,
+                                tuneGrid = titanic_gbm_grid)
 save(titanic_gbm_gridsearch, file = 'data/gbm_titanic.Rdata')
 load('data/gbm_titanic.Rdata')
+
+# Convert Revenue to 0/1 (assuming it's a factor with "No"/"Yes" levels)
+train$Revenue <- as.numeric(train$Revenue) - 1  # Converts "No"=0, "Yes"=1
+
+# Alternative if Revenue is character "0"/"1" or needs explicit conversion:
+train$Revenue <- ifelse(train$Revenue == "Yes", 1, 0)
+
+# Ensure Revenue is numeric and contains only 0/1
+stopifnot(all(train$Revenue %in% c(0, 1)))
+
+# Train the GBM model
+titanic_gbm <- gbm(
+  Revenue ~ ., 
+  data = train, 
+  distribution = 'bernoulli',
+  n.trees = titanic_gbm_gridsearch$bestTune$n.trees, 
+  interaction.depth = titanic_gbm_gridsearch$bestTune$interaction.depth,
+  shrinkage = titanic_gbm_gridsearch$bestTune$shrinkage,
+  bag.fraction = 1,
+  cv.folds = 10,
+  n.cores = 10,
+  verbose = FALSE
+)
+
+d <- gbm.perf(titanic_gbm)
+legend('topright', c('CV error', 'Training error'), col = c('green', 'black'), lty = 1)
 ```
+
 ### xgboost attempt 1
 ```{r}
 calif_xgb_grid <- expand.grid(nrounds = seq(1000, 5000, 1000),  #number of trees
@@ -130,9 +186,28 @@ save(calif_xgb_gridsearch, file = 'data/xgb_calif_40k.Rdata')
 
 load('data/xgb_calif_40k.Rdata')
 
+kable(calif_xgb_gridsearch$bestTune)
+
 plot(calif_xgb_gridsearch)
 
 xgb_pred <- predict(calif_xgb_gridsearch, valid[,-16])
 xgb_mse <- round(mean((as.numeric(valid$Revenue) - as.numeric(xgb_pred))^2), 3)
+
+confmat_xgb <- table(xgb_pred, valid[,16], dnn = c('Predicted label', 'True label'))
+
+accuracy_xgb <- (confmat_xgb[1,1] + confmat_xgb[2,2])/nrow(valid)
+recall_xgb <- confmat_xgb[2,2]/(confmat_xgb[2,2]+confmat_xgb[1,2])
+specificity_xgb <- confmat_xgb[1,1]/(confmat_xgb[1,1] + confmat_xgb[2,1])
+precision_xgb <- confmat_xgb[2,2]/(confmat_xgb[2,2] + confmat_xgb[2,1])
+
+f1_score_xgb <- 2*(precision_xgb * recall_xgb)/(precision_xgb + recall_xgb)
+
+pred_xgb <- prediction(as.numeric(xgb_pred), as.numeric(valid[,16]))
+perf  <- performance(pred_xgb, 'tpr', 'fpr')
+plot.new()        # Start a new plot (if needed)
+plot(perf, colorize = FALSE, col = 'black')
+lines(c(0,1), c(0,1), col = 'gray', lty = 4)
+
+auc <- performance(pred_xgb, measure = 'auc')@y.values[[1]]
 
 ```
