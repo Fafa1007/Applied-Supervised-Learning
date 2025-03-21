@@ -4,16 +4,21 @@
 
 You may specify the model and regularize (or not) in any way you wish, just be sure to clearly state your final model.
 
+Vanilla Model
+
 ```{r}
-# logistic regression model to the entire datase
+# Vanilla Logistic Regression Model
 log_mod <- glm(Revenue ~ ., family = binomial,data = train)
 log_mod %>% 
   tidy() %>%
-  kable(digits = 2, caption = 'Vanilla logistic regression model')
+  kable(digits = 2, caption = 'Vanilla Logistic Regression Model')
 ```
 
+Polynomial Logistic Regression Models (choose the variables to make 5th degree polynomials by looking at the most significant numerical variables from the vanilla model)
+
+1.  Polynomial Logistic Model with all variables
+
 ```{r}
-# Polynomial Logistic Regression Models
 poly_log1 <- glm(Revenue ~ 
             Informational + I(Informational^2) + I(Informational^3) +I(Informational^4) + 
             ProductRelated_Duration + I(ProductRelated_Duration^2) + I(ProductRelated_Duration^3) + I(ProductRelated_Duration^4) +
@@ -23,7 +28,11 @@ poly_log1 <- glm(Revenue ~
 poly_log1 %>% 
   tidy() %>%
   kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using all the varibles')
+```
 
+2.  Polynomial Logistic Model with only the polynomial variables
+
+```{r}
 poly_log2 <- glm(Revenue ~ 
             Informational + I(Informational^2) + I(Informational^3) +I(Informational^4) + 
             ProductRelated_Duration + I(ProductRelated_Duration^2) + I(ProductRelated_Duration^3) + I(ProductRelated_Duration^4) +
@@ -33,6 +42,7 @@ poly_log2 <- glm(Revenue ~
 poly_log2 %>% 
   tidy() %>%
   kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using only the polynomial variables')
+
 ```
 
 ------------------------------------------------------------------------
@@ -45,7 +55,7 @@ poly_log2 %>%
 
 \newpage
 
-## Optimizing F1 Score 
+## Optimizing F1 Score
 
 ------------------------------------------------------------------------
 
