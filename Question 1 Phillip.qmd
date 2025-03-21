@@ -3,6 +3,14 @@ title: "Question 1 Phillip"
 format: html
 ---
 
+```{r}
+library(class)
+library(ggplot2)
+library(caret)
+library(gbm)
+library(xgboost)
+```
+
 ## Question 1: Modelling
 
 ```{r}
@@ -11,6 +19,120 @@ test <- read.csv("online_shopping_testing.csv")
 valid <- read.csv("online_shopping_valid.csv")
 
 head(train)
+
+factor_cols <- c("Month", "OperatingSystems", "Browser", "VisitorType", "Weekend", "Revenue")
+
+scale_cols <- c("Administrative","Administrative_Duration", "Informational", "Informational_Duration","ProductRelated","SpecialDay", "ProductRelated_Duration","BounceRates", "ExitRates", "PageValues")
+
+train[factor_cols] <- lapply(train[factor_cols], factor)
+train[scale_cols] <- lapply(train[scale_cols], scale)
+y_train <- train["Revenue"]
+x_train <- train[, -16]
+
+valid[factor_cols] <- lapply(valid[factor_cols], factor)
+valid[scale_cols] <- lapply(valid[scale_cols], scale)
+y_valid <- valid["Revenue"]
+x_valid <- valid[,-16]
+
+test[head(factor_cols,-1)] <- lapply(test[head(factor_cols,-1)], factor)
+test[scale_cols] <- lapply(test[scale_cols], scale)
 ```
 
-### Logistic Regression: Linear decision boundary
+### KNN
+
+K-Nearest Neighbours (KNN), motivating for the choice of k. The choice of features to include is up to you, and may be informed by any subsequent analysis (in which case, refer ahead to that question). Apply 10-fold cross-validation throughout to measure classification accuracy.
+
+```{r}
+#| warning: false
+
+N <- 30
+
+knn_cv <- train(Revenue ~ ., 
+                data = train,
+                method = "knn",
+                trControl = trainControl(method = "cv", number = 10),
+                tuneGrid = expand.grid(k = 1:N))
+
+knn_pred <- knn(train = train[scale_cols],
+                test = valid[scale_cols],
+                cl = train$Revenue,
+                k = as.numeric(knn_cv$bestTune))
+
+knn_pred <- predict(knn_cv, valid[,-16])
+
+knn_mse <- round(mean((as.numeric(valid$Revenue) - as.numeric(knn_pred))^2), 3)
+
+```
+### gbm attempt
+```{r}
+set.seed(4026)
+titanic_gbm_grid <- expand.grid(n.trees = seq(500, 6000, 500),
+                                 interaction.depth = 1:5,
+                                 shrinkage = c(0.01, 0.005, 0.001),
+                                 n.minobsinnode = 1)
+ 
+ ctrl <-  trainControl(method = 'cv', number = 10, verboseIter = T)
+ 
+ titanic_gbm_gridsearch <- train(Revenue ~ ., data = train,
+                                 method = 'gbm',
+                                 distribution = 'bernoulli', #For classification
+                                 trControl = ctrl,
+                                 verbose = F,
+                                 tuneGrid = titanic_gbm_grid)
+save(titanic_gbm_gridsearch, file = 'data/gbm_titanic.Rdata')
+load('data/gbm_titanic.Rdata')
+```
+### xgboost attempt 1
+```{r}
+calif_xgb_grid <- expand.grid(nrounds = seq(1000, 5000, 1000),  #number of trees
+                              max_depth = c(2, 5),               #interaction depth
+                               eta = c(0.01, 0.005),              #learning rate
+                               gamma = 0.001,                     #mindev
+                               colsample_bytree = c(1, 0.5),      #proportion random features per tree
+                               min_child_weight = 1,              #also controls tree depth
+                               subsample = 1)                     #bootstrap proportion
+ 
+ ctrl <-  trainControl(method = 'cv', number = 5, verboseIter = T)
+ 
+ calif_xgb_gridsearch <- train(Revenue ~ ., data = train,
+                               method = 'xgbTree',
+                               trControl = ctrl,
+                               verbose = F,
+                               tuneGrid = calif_xgb_grid)
+ 
+ save(calif_xgb_gridsearch, file = 'data/xgb_calif_40k.Rdata')
+
+load('data/xgb_calif_40k.Rdata')
+
+plot(calif_xgb_gridsearch)
+```
+xgboost attempt final
+```{r}
+#| warning: false
+
+calif_xgb_grid <- expand.grid(nrounds = seq(1000, 5000, 1000),  #number of trees
+                              max_depth = c(2, 5, 8),               #interaction depth
+                               eta = c(0.01, 0.005, 0.001),              #learning rate
+                               gamma = 0.001,                     #mindev
+                               colsample_bytree = c(1, 0.5),      #proportion random features per tree
+                               min_child_weight = 1,              #also controls tree depth
+                               subsample = 1)                     #bootstrap proportion
+ 
+ctrl <-  trainControl(method = 'cv', number = 10, verboseIter = T)
+ 
+calif_xgb_gridsearch <- train(Revenue ~ ., data = train,
+                               method = 'xgbTree',
+                               trControl = ctrl,
+                               verbose = F,
+                               tuneGrid = calif_xgb_grid)
+ 
+save(calif_xgb_gridsearch, file = 'data/xgb_calif_40k.Rdata')
+
+load('data/xgb_calif_40k.Rdata')
+
+plot(calif_xgb_gridsearch)
+
+xgb_pred <- predict(calif_xgb_gridsearch, valid[,-16])
+xgb_mse <- round(mean((as.numeric(valid$Revenue) - as.numeric(xgb_pred))^2), 3)
+
+```
