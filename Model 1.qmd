@@ -77,10 +77,46 @@ log_elas %>%
 
 \newpage
 
-## Model Evaluation
+## Model Evaluation decision threshold of 0.5
 
 ```{r}
+library(MLmetrics)
+library(caret)
+library(knitr)
+library(dplyr)
+library(ROCR)
 
+# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from the regularised logistic model
+x_valid_dummies <- makeX(x_valid)
+pred_probabilities <- predict(log_elas, newx = as.matrix(x_valid_dummies), type = "response")
+
+# Secondly, create a confusion matrix
+yhat <- ifelse(pred_probabilities >= 0.5, 'Revenue', 'No Revenue')
+y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 'Revenue', "No Revenue"))
+cat("Confusion Matrix using Predicted Probabilities")
+(confmat <- table(yhat, y, dnn = c('Predicted label', 'True label')))
+
+# Thirdly, get the Accuracy, F1 Score, Precision, Recall, Specificity which we can calculate from the confusion matrix .... or us the caret package 
+caretmat <- confusionMatrix(as.factor(yhat), as.factor(y), positive = 'Revenue')
+caretmat 
+
+Sensitivity <- caretmat$byClass["Sensitivity"]  # True Positive Rate (Recall)
+Specificity <- caretmat$byClass["Specificity"]  # True Negative Rate
+Precision <- caretmat$byClass["Precision"]      # Positive Predictive Value
+F1_score <- caretmat$byClass["F1"]              # F1 Score
+Accuracy <- caretmat$overall["Accuracy"]        # Accuracy
+Missclassification_Rate <- mean(yhat != y)
+
+# AUC
+yhat <- ifelse(pred_probabilities >= 0.5, 1, 0)
+y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 1, 0))
+pred_obj <- prediction(y, yhat)
+ROC_AUC <- performance(pred_obj, measure = "auc")@y.values[[1]]
+
+# Lastly, put them all into a table
+compar <- rbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
+colnames(compar) <- c("Values")
+compar %>% kable(caption = "Logistic Regression with Elastic Regularisation Evaluation Metric")
 ```
 
 ------------------------------------------------------------------------
@@ -88,6 +124,15 @@ log_elas %>%
 \newpage
 
 ## Optimizing F1 Score
+
+```{r}
+auc_cv <- cv.glmnet(x_train_dummies, y_train, family = 'binomial', type.measure = 'auc', keep = T)
+all_rocs <- roc.glmnet(auc_cv$fit.preval, newy = y_train) #67 different curves!
+
+best_roc <- auc_cv$index['min', ] #Also labeled min, even though here it's a max :|
+
+round(coef(auc_cv, s = 'lambda.min'), 3)
+```
 
 ------------------------------------------------------------------------
 
