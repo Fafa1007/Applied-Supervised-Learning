@@ -72,4 +72,3 @@ ggplot(df_long, aes(x = Metric, y = Value, fill = Model)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels
 ```
-

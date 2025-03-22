@@ -2,43 +2,6 @@
 
 Apply 10-fold cross-validation throughout to measure classification accuracy
 
-#### Set-Up
-
-```{r}
-library(class)
-library(ggplot2)
-library(caret)
-library(gbm)
-library(xgboost)
-library(ROCR)
-library(dplyr)
-library(tidyverse)
-library(knitr)
-
-train <- read.csv("online_shopping_train.csv")
-test <- read.csv("online_shopping_testing.csv")
-valid <- read.csv("online_shopping_valid.csv")
-
-head(train)
-
-factor_cols <- c("Month", "OperatingSystems", "Browser", "VisitorType", "Weekend", "Revenue")
-
-scale_cols <- c("Administrative","Administrative_Duration", "Informational", "Informational_Duration","ProductRelated","SpecialDay", "ProductRelated_Duration","BounceRates", "ExitRates", "PageValues")
-
-train[factor_cols] <- lapply(train[factor_cols], factor)
-train[scale_cols] <- lapply(train[scale_cols], scale)
-y_train <- train["Revenue"]
-x_train <- train[, -16]
-
-valid[factor_cols] <- lapply(valid[factor_cols], factor)
-valid[scale_cols] <- lapply(valid[scale_cols], scale)
-y_valid <- valid["Revenue"]
-x_valid <- valid[,-16]
-
-test[head(factor_cols,-1)] <- lapply(test[head(factor_cols,-1)], factor)
-test[scale_cols] <- lapply(test[scale_cols], scale)
-```
-
 ## Modelling
 
 ```{r}
@@ -66,43 +29,154 @@ knn_pred <- knn(train = train[scale_cols],
 
 \newpage
 
-## Inference/Interpretation
-
-------------------------------------------------------------------------
-
-\newpage
-
 ## Model Evaluation (ques 1 b)
 
 ```{r}
-knn_mse <- round(mean((as.numeric(valid$Revenue) - as.numeric(knn_pred))^2), 3)
+knn_predict_probabilities <- predict(knn_cv, newdata = valid, type = "prob")[, "1"]
 
-confmat_knn <- table(knn_pred, valid[,16], dnn = c('Predicted label', 'True label'))
+# Secondly, create a confusion matrix
+yhat <- ifelse(knn_predict_probabilities >= 0.5,'Revenue', "No Revenue")
+y <- matrix(ifelse(as.numeric(unlist(valid[,16]))==1, 'Revenue', "No Revenue"))
+cat("Confusion Matrix using Predicted Probabilities")
+(confmat <- table(yhat, y, dnn = c('Predicted label', 'True label')))
 
-accuracy_knn <- (confmat_knn[1,1] + confmat_knn[2,2])/nrow(valid)
-recall_knn <- confmat_knn[2,2]/(confmat_knn[2,2]+confmat_knn[1,2])
-specificity_knn <- confmat_knn[1,1]/(confmat_knn[1,1] + confmat_knn[2,1])
-precision_knn <- confmat_knn[2,2]/(confmat_knn[2,2] + confmat_knn[2,1])
+caretmat <- confusionMatrix(as.factor(yhat), as.factor(y), positive = 'Revenue')
+caretmat 
 
-f1_score_knn <- 2*(precision_knn * recall_knn)/(precision_knn + recall_knn)
+Sensitivity <- caretmat$byClass["Sensitivity"]  # True Positive Rate (Recall)
+Specificity <- caretmat$byClass["Specificity"]  # True Negative Rate
+Precision <- caretmat$byClass["Precision"]      # Positive Predictive Value
+F1_score <- caretmat$byClass["F1"]              # F1 Score
+Accuracy <- caretmat$overall["Accuracy"]        # Accuracy
+Missclassification_Rate <- mean(yhat != y)
 
-pred_knn <- prediction(as.numeric(knn_pred), as.numeric(valid[,16]))
-perf  <- performance(pred_knn, 'tpr', 'fpr')
-plot.new()        # Start a new plot (if needed)
-plot(perf, colorize = FALSE, col = 'black')
-lines(c(0,1), c(0,1), col = 'gray', lty = 4)
+# AUC (only works with binary data)
+yhat <- ifelse(knn_predict_probabilities >= 0.5, 1, 0)
+y <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 1, 0))
+pred_obj <- prediction(y, yhat)
+ROC_AUC <- performance(pred_obj, measure = "auc")@y.values[[1]]
 
-auc <- performance(pred_knn, measure = 'auc')@y.values[[1]]
+# Lastly, put them all into a table
+combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
+rownames(combined) <- c("Polynomial Logistic Regression")
+kable(combined)
+
+compar[3,] <- combined
 ```
 
 ------------------------------------------------------------------------
 
 \newpage
 
-## Optimizing F1 Score
+## Inference/Interpretation
 
 ```{r}
+# Compute feature importance
+importance <- xgb.importance(
+  feature_names = colnames(train[, -which(names(train) == "Revenue")]),
+  model = model
+)
 
+# Print importance
+print(importance)
+
+# Plot importance
+xgb.plot.importance(importance_matrix = importance, top_n = 10)
+```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Optimising F1 Score
+
+```{r}
+library(caret)
+library(pROC)
+library(class)
+
+N <- 30
+
+# Convert your target variable to a factor with valid level names
+train$Revenue <- factor(
+  train$Revenue,
+  levels = c(0, 1),  # Replace with your original values
+  labels = c("No", "Yes")  # Use valid R names (no numbers/special characters)
+)
+
+valid$Revenue <- factor(
+  valid$Revenue,
+  levels = c(0, 1),  # Same as above
+  labels = c("No", "Yes")  # Must match training set labels
+)
+
+# Configure cross-validation with class probabilities
+ctrl <- trainControl(
+  method = "cv",
+  number = 10,
+  classProbs = TRUE,      # Enable probability estimates
+  savePredictions = "final",
+  summaryFunction = twoClassSummary
+)
+
+# Train KNN model with kknn (supports probabilities)
+knn_cv <- train(
+  Revenue ~ .,
+  data = train,
+  method = "kknn",        # Use kknn method instead of knn3
+  trControl = ctrl,
+  tuneGrid = expand.grid(
+    kmax = 1:N,           # Number of neighbors (equivalent to k)
+    distance = 2,         # Minkowski power (2 = Euclidean)
+    kernel = "optimal"    # Weighting kernel
+  ),
+  metric = "ROC"
+)
+########## first way
+# Get predicted probabilities for the positive class (e.g., "Yes")
+prob_pred_knn <- predict(knn_cv, newdata = valid, type = "prob")[, "Yes"]
+
+# Create ROC curve
+
+pred_knn <- prediction(as.numeric(prob_pred_knn), as.numeric(valid[,16]))
+perf_knn  <- performance(pred_knn, 'tpr', 'fpr')
+plot.new()        # Start a new plot (if needed)
+plot(perf_knn, colorize = FALSE, col = 'black')
+lines(c(0,1), c(0,1), col = 'gray', lty = 4)
+
+auc <- performance(pred_knn, measure = 'auc')@y.values[[1]]
+
+########### second way
+# Get predicted probabilities for the positive class
+prob_pred_knn <- predict(knn_cv, newdata = valid, type = "prob")[, "Yes"]
+
+library(pROC)
+
+# Create ROC object
+roc_obj <- roc(
+  response = valid$Revenue,  # True labels (factor with levels "No"/"Yes")
+  predictor = prob_pred_knn      # Predicted probabilities for "Yes"
+)
+
+# Extract TPR and FPR
+tpr <- roc_obj$sensitivities
+fpr <- 1 - roc_obj$specificities
+
+library(ggplot2)
+
+# Create a data frame of TPR and FPR
+roc_data <- data.frame(FPR = fpr, TPR = tpr)
+
+# Plot using ggplot2
+ggplot(roc_data, aes(x = FPR, y = TPR)) +
+  geom_line(color = "blue", linewidth = 1) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    title = "ROC Curve for KNN Model",
+    x = "False Positive Rate (FPR)",
+    y = "True Positive Rate (TPR)"
+  ) +
+  theme_minimal()
 ```
 
 ------------------------------------------------------------------------
