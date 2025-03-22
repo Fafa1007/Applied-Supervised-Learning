@@ -8,6 +8,9 @@ Finding and motivating our choice of the tree size we wish to prune our over fit
 
 ```{r}
 library(tree)
+
+set.seed(4026)
+
 # First, grow an overfitted tree 
 tree_overfit <- tree(Revenue ~ ., data = train,
                         control = tree.control(nobs = nrow(na.omit(train)),
@@ -38,31 +41,11 @@ abline(v = T, lty = 2, lwd = 2, col = 'red')
 Pruned Tree Model
 
 ```{r}
-# The pruned Tree Model
+# Lastly, here is the final pruned Tree Model
 pruned_tree <- prune.misclass(tree_overfit, best = T)
+
+save(pruned_tree, file = 'R Data/Pruned Classification Tree Model.Rdata')
 ```
-
-------------------------------------------------------------------------
-
-\newpage
-
-## Inference/Interpretation
-
-```{r}
-# Pruned Classification Tree
-plot(pruned_tree)
-text(pruned_tree, pretty = 0)
-pruned_tree
-```
-
-1.  **PageValues is the primary driver of purchasing intent**: The root node splits on *PageValues*, with a threshold of -0.262927. Visitors with lower *PageValues* (node 2, 78.76% of the data) have a low likelihood of purchasing (4.16% probability), while those with higher *PageValues* (node 3, 21.24% of the data) show a significantly higher likelihood of purchasing (56.74% probability). This aligns with the study's emphasis on the importance of high-value page interactions in predicting purchasing intent.
-
-2.  **Seasonal effects are evident in the data**: The tree further splits on *Month*, revealing distinct seasonal patterns. For example, in node 4 (February, March, May), all visitors have a 0% probability of purchasing, indicating low shopping activity during these months. In contrast, node 11 (July, November, September) shows an 11.12% probability of purchasing, with higher activity during these months. This supports the study's findings on the influence of temporal factors on shopper behavior.
-
-3.  **ProductRelated_Duration and BounceRates refine predictions**: The tree uses *ProductRelated_Duration* and *BounceRates* to further refine predictions. For instance, in node 23, visitors with higher *ProductRelated_Duration* (above -0.0118301) have an 18.93% probability of purchasing, compared to 7.18% for those with lower durations (node 22). Similarly, in node 6, visitors with lower *BounceRates* (below -0.451897) have a 74.12% probability of purchasing, highlighting the negative impact of high bounce rates on conversion rates, as noted in the study.
-
-4.  **Combining features improves prediction accuracy**: The tree demonstrates the value of combining multiple features to improve prediction accuracy. For example, in node 15 (February, March, November), the probability of purchasing increases to 56.99% when combined with higher *PageValues* and moderate *BounceRates*. This aligns with the study's approach of leveraging both clickstream and session-based features to enhance the system's success rate.
-
 
 ------------------------------------------------------------------------
 
@@ -110,6 +93,27 @@ kable(combined)
 
 compar[4,] <- combined
 ```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Inference/Interpretation
+
+```{r}
+# Pruned Classification Tree
+plot(pruned_tree)
+text(pruned_tree, pretty = 0)
+pruned_tree
+```
+
+1.  **PageValues is the primary driver of purchasing intent**: The root node splits on *PageValues*, with a threshold of -0.262927. Visitors with lower *PageValues* (node 2, 78.76% of the data) have a low likelihood of purchasing (4.16% probability), while those with higher *PageValues* (node 3, 21.24% of the data) show a significantly higher likelihood of purchasing (56.74% probability). This aligns with the study's emphasis on the importance of high-value page interactions in predicting purchasing intent.
+
+2.  **Seasonal effects are evident in the data**: The tree further splits on *Month*, revealing distinct seasonal patterns. For example, in node 4 (February, March, May), all visitors have a 0% probability of purchasing, indicating low shopping activity during these months. In contrast, node 11 (July, November, September) shows an 11.12% probability of purchasing, with higher activity during these months. This supports the study's findings on the influence of temporal factors on shopper behavior.
+
+3.  **ProductRelated_Duration and BounceRates refine predictions**: The tree uses *ProductRelated_Duration* and *BounceRates* to further refine predictions. For instance, in node 23, visitors with higher *ProductRelated_Duration* (above -0.0118301) have an 18.93% probability of purchasing, compared to 7.18% for those with lower durations (node 22). Similarly, in node 6, visitors with lower *BounceRates* (below -0.451897) have a 74.12% probability of purchasing, highlighting the negative impact of high bounce rates on conversion rates, as noted in the study.
+
+4.  **Combining features improves prediction accuracy**: The tree demonstrates the value of combining multiple features to improve prediction accuracy. For example, in node 15 (February, March, November), the probability of purchasing increases to 56.99% when combined with higher *PageValues* and moderate *BounceRates*. This aligns with the study's approach of leveraging both clickstream and session-based features to enhance the system's success rate.
 
 ------------------------------------------------------------------------
 
