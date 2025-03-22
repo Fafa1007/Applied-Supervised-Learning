@@ -51,7 +51,7 @@ save(pruned_tree, file = 'R Data/Pruned Classification Tree Model.Rdata')
 
 \newpage
 
-## Model Evaluation
+## Model Evaluation decision threshold of 0.5
 
 ```{r}
 library(MLmetrics)

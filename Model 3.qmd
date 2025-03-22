@@ -35,7 +35,7 @@ save(knn_model, file = 'R Data/K Nearest Neighbours Model.Rdata')
 
 \newpage
 
-## Model Evaluation 
+## Model Evaluation
 
 ```{r}
 library(MLmetrics)
@@ -81,7 +81,8 @@ compar[3,] <- combined
 
 \newpage
 
-## Model Evaluation (ques 1 b)
+## Model Evaluation decision threshold of 0.5
+
 ```{r}
 knn_predict_probabilities <- predict(knn_model, newdata = valid, type = "prob")[, "1"]
 
@@ -117,11 +118,9 @@ compar[3,] <- combined
 
 ------------------------------------------------------------------------
 
-
 \newpage
 
 ## Inference/Interpretation
-
 
 Since we can't plot out a graph for all the dimensions and there's no coefficients, we can't interpret the model besides looking at their evaluation metrics
 
@@ -220,6 +219,7 @@ mean(max_F1_tau_knn)
 mf_knn
 
 ```
+
 ------------------------------------------------------------------------
 
 \newpage

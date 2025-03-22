@@ -57,7 +57,7 @@ save(rf_gridsearch, file = 'R Data/Random Forest Model.Rdata')
 
 \newpage
 
-## Model Evaluation
+## Model Evaluation decision threshold of 0.5
 
 Model Evaluation of Tuned Random Forest Model
 

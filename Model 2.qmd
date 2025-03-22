@@ -40,7 +40,7 @@ save(poly_log, file = 'R Data/Polynomial Logistic Regression Model.Rdata')
 
 \newpage
 
-## Model Evaluation
+## Model Evaluation decision threshold of 0.5
 
 ```{r}
 library(MLmetrics)
