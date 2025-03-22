@@ -2,7 +2,7 @@
 
 Apply 10-fold cross-validation throughout to measure classification accuracy
 
-## Modelling decision threshold of 0.5
+## Modelling
 
 ```{R}
 #| warning: false
@@ -47,7 +47,7 @@ save(gbm_model, file = 'R Data/Gradient Boosted Model.Rdata')
 
 ------------------------------------------------------------------------
 
-## Model Evaluation
+## Model Evaluation decision threshold of 0.5
 
 ```{r}
 library(MLmetrics)
@@ -57,7 +57,7 @@ library(dplyr)
 library(ROCR)
 
 # Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from model
-prob_pred_gbm <- predict(calif_fe_gbm, valid[, -16], type = "response", n.trees = calif_fe_gbm$bestTune$n.trees)
+prob_pred_gbm <- predict(gbm_model, valid[, -16], type = "response", n.trees = calif_fe_gbm$bestTune$n.trees)
 
 # Secondly, create a confusion matrix
 yhat_gbm <- ifelse(prob_pred_gbm >= 0.5,'Revenue', "No Revenue")
@@ -99,7 +99,7 @@ Variable Importance Plots
 ```{r}
 # Variable Importance Plots
 plot.new()
-d <- gbm.perf(calif_fe_gbm)
+d <- gbm.perf(gbm_model)
 legend('topright', c('CV error', 'Training error'), col = c('green', 'black'), lty = 1)
 
 
@@ -113,7 +113,7 @@ Partial Dependency Plots
 # Partial Dependency Plots
 
 # Get variable importance from the GBM model
-var_importance <- summary(calif_fe_gbm, plotit = FALSE)
+var_importance <- summary(gbm_model, plotit = FALSE)
 
 # Select top N variables (e.g., top 4)
 top_vars <- var_importance$var[1:4]
@@ -122,10 +122,10 @@ library(gridExtra)
 library(grid)
 
 ylims <- c(-5,2)
-p1 <- plot.gbm(calif_fe_gbm, 'PageValues', d, ylim = ylims, ylab = '')
-p2 <- plot.gbm(calif_fe_gbm, 'Month', d, ylim = ylims, ylab = '')
-p3 <- plot.gbm(calif_fe_gbm, 'BounceRates', d, ylim = ylims, ylab = '')
-p4 <- plot.gbm(calif_fe_gbm, 'ProductRelated_Duration', d, ylim = ylims, ylab = '')
+p1 <- plot.gbm(gbm_model, 'PageValues', d, ylim = ylims, ylab = '')
+p2 <- plot.gbm(gbm_model, 'Month', d, ylim = ylims, ylab = '')
+p3 <- plot.gbm(gbm_model, 'BounceRates', d, ylim = ylims, ylab = '')
+p4 <- plot.gbm(gbm_model, 'ProductRelated_Duration', d, ylim = ylims, ylab = '')
 
 grid.arrange(p1, p2, p3, p4, ncol = 2)
 grid.text('Revenue', x = 0, vjust = 1, rot = 90)
