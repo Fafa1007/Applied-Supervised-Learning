@@ -128,94 +128,78 @@ xgb.plot.importance(importance_matrix = importance, top_n = 10)
 ## Optimising F1 Score
 
 ```{r}
-library(caret)
-library(pROC)
-library(class)
+#| warning: false
+#| message: false
 
-N <- 30
+# Finding Maximum F1 Score and Corresponding Tau
+knn_predict_probabilities <- predict(knn_cv, newdata = valid, type = "prob")[, "1"]
 
-# Convert your target variable to a factor with valid level names
-train$Revenue <- factor(
-  train$Revenue,
-  levels = c(0, 1),  # Replace with your original values
-  labels = c("No", "Yes")  # Use valid R names (no numbers/special characters)
-)
+F1_score_vec <- vector()
+tau <- vector()
+seq_i <- seq(min(knn_predict_probabilities) + 0.0001 ,max(knn_predict_probabilities) - 0.0001,length = 1000)
+index <- 1
 
-valid$Revenue <- factor(
-  valid$Revenue,
-  levels = c(0, 1),  # Same as above
-  labels = c("No", "Yes")  # Must match training set labels
-)
+for (i in seq_i) {
+  yhat_knn <- ifelse(knn_predict_probabilities >= i,'Revenue', "No Revenue")
+  y_knn <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
+  confmat <- table(yhat_knn, y_knn, dnn = c('Predicted label', 'True label'))
 
-# Configure cross-validation with class probabilities
-ctrl <- trainControl(
-  method = "cv",
-  number = 10,
-  classProbs = TRUE,      # Enable probability estimates
-  savePredictions = "final",
-  summaryFunction = twoClassSummary
-)
+  caretmat <- confusionMatrix(as.factor(yhat_knn), as.factor(y_knn), positive = 'Revenue')
+   
+  F1_score_vec[index] <- caretmat$byClass["F1"]
+  tau[index] <- i
+  index <- index + 1
+}
 
-# Train KNN model with kknn (supports probabilities)
-knn_cv <- train(
-  Revenue ~ .,
-  data = train,
-  method = "kknn",        # Use kknn method instead of knn3
-  trControl = ctrl,
-  tuneGrid = expand.grid(
-    kmax = 1:N,           # Number of neighbors (equivalent to k)
-    distance = 2,         # Minkowski power (2 = Euclidean)
-    kernel = "optimal"    # Weighting kernel
-  ),
-  metric = "ROC"
-)
-########## first way
-# Get predicted probabilities for the positive class (e.g., "Yes")
-prob_pred_knn <- predict(knn_cv, newdata = valid, type = "prob")[, "Yes"]
+df <- data.frame(x = tau, y = F1_score_vec)
+mf <- max(F1_score_vec)
+max_F1_tau <- df$x[df$y == mf]
 
-# Create ROC curve
+# Plotting F Score Account Tau
+df <- data.frame(x = tau, y = F1_score_vec)
 
-pred_knn <- prediction(as.numeric(prob_pred_knn), as.numeric(valid[,16]))
+f1_t_3 <- ggplot() + geom_line(data = df, aes(x = x, y = y)) + geom_vline(xintercept = max_F1_tau, color = "red", linetype = "dashed") + theme_minimal() + labs(x = "Tau", y = "F1 Score", title = "F1 Score Against Different Desician Rule Thresholds (Tau) for a KNN Model")
+f1_t_3
+
+# ROC Curve Plot
+pred_knn <- prediction(as.numeric(knn_predict_probabilities), as.numeric(valid[,16]))
 perf_knn  <- performance(pred_knn, 'tpr', 'fpr')
 plot.new()        # Start a new plot (if needed)
 plot(perf_knn, colorize = FALSE, col = 'black')
 lines(c(0,1), c(0,1), col = 'gray', lty = 4)
 
-auc <- performance(pred_knn, measure = 'auc')@y.values[[1]]
+yhat_knn <- ifelse(knn_predict_probabilities >= max_F1_tau,'Revenue', "No Revenue")
+y_knn <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
+cat("Confusion Matrix using Predicted Probabilities")
+(confmat <- table(yhat_knn, y_knn, dnn = c('Predicted label', 'True label')))
 
-########### second way
-# Get predicted probabilities for the positive class
-prob_pred_knn <- predict(knn_cv, newdata = valid, type = "prob")[, "Yes"]
+caretmat_knn <- confusionMatrix(as.factor(yhat_knn), as.factor(y_knn), positive = 'Revenue')
 
-library(pROC)
+TPR_knn <- caretmat_knn$byClass["Sensitivity"]  # True Positive Rate (Recall)
+FPR_knn <- 1 - caretmat_knn$byClass["Specificity"]
 
-# Create ROC object
-roc_obj <- roc(
-  response = valid$Revenue,  # True labels (factor with levels "No"/"Yes")
-  predictor = prob_pred_knn      # Predicted probabilities for "Yes"
+points(
+  x = FPR_knn, 
+  y = TPR_knn,
+  pch = 19,          # Solid circle point
+  col = "red",       # Color of the point
+  cex = 1          # Point size
 )
 
-# Extract TPR and FPR
-tpr <- roc_obj$sensitivities
-fpr <- 1 - roc_obj$specificities
+text(
+  x = FPR_knn + 0.15,    # Offset text slightly to the right
+  y = TPR_knn - 0.08, 
+  labels = paste0("Threshold: ", round(max_F1_tau, 3)), 
+  col = "black"
+)
 
-library(ggplot2)
-
-# Create a data frame of TPR and FPR
-roc_data <- data.frame(FPR = fpr, TPR = tpr)
-
-# Plot using ggplot2
-ggplot(roc_data, aes(x = FPR, y = TPR)) +
-  geom_line(color = "blue", linewidth = 1) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
-  labs(
-    title = "ROC Curve for KNN Model",
-    x = "False Positive Rate (FPR)",
-    y = "True Positive Rate (TPR)"
-  ) +
-  theme_minimal()
+text(
+  x = FPR_knn + 0.15,
+  y = TPR_knn - 0.16,  # Second label: slightly below the point
+  labels = paste("F1 Score:", round(mf, 3)),  # Example metric
+  col = "black"
+)
 ```
-
 ------------------------------------------------------------------------
 
 \newpage

@@ -177,6 +177,7 @@ grid.text('Revenue', x = 0, vjust = 1, rot = 90)
 
 ```{r}
 #| warning: false
+#| message: false
 
 # Finding Maximum F1 Score and Corresponding Tau
 prob_pred_gbm <- predict(calif_fe_gbm, valid[, -16], type = "response", n.trees = calif_fe_gbm$bestTune$n.trees)
@@ -189,8 +190,7 @@ index <- 1
 for (i in seq_i) {
   yhat_gbm <- ifelse(prob_pred_gbm >= i,'Revenue', "No Revenue")
   y_gbm <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
-  cat("Confusion Matrix using Predicted Probabilities")
-  (confmat <- table(yhat_gbm, y_gbm, dnn = c('Predicted label', 'True label')))
+  confmat <- table(yhat_gbm, y_gbm, dnn = c('Predicted label', 'True label'))
 
   caretmat <- confusionMatrix(as.factor(yhat_gbm), as.factor(y_gbm), positive = 'Revenue')
    
@@ -206,8 +206,8 @@ max_F1_tau <- df$x[df$y == mf]
 # Plotting F Score Account Tau
 df <- data.frame(x = tau, y = F1_score_vec)
 
-ggplot() + geom_line(data = df, aes(x = x, y = y)) + geom_vline(xintercept = max_F1_tau, color = "red", linetype = "dashed") + theme_minimal() + labs(x = "Tau", y = "F1 Score")
-
+f1_t_6 <- ggplot() + geom_line(data = df, aes(x = x, y = y)) + geom_vline(xintercept = max_F1_tau, color = "red", linetype = "dashed") + theme_minimal() + labs(x = "Tau", y = "F1 Score", title = "F1 Score Against Different Desician Rule Thresholds (Tau) for a GBM Model")
+f1_t_6
 
 # ROC Curve Plot
 pred_gbm <- prediction(as.numeric(prob_pred_gbm), as.numeric(valid[,16]))
@@ -216,7 +216,39 @@ plot.new()        # Start a new plot (if needed)
 plot(perf_gbm, colorize = FALSE, col = 'black')
 lines(c(0,1), c(0,1), col = 'gray', lty = 4)
 
-auc <- performance(pred_gbm, measure = 'auc')@y.values[[1]]
+yhat_gbm <- ifelse(prob_pred_gbm >= max_F1_tau,'Revenue', "No Revenue")
+y_gbm <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
+cat("Confusion Matrix using Predicted Probabilities")
+(confmat <- table(yhat_gbm, y_gbm, dnn = c('Predicted label', 'True label')))
+
+caretmat_gbm <- confusionMatrix(as.factor(yhat_gbm), as.factor(y_gbm), positive = 'Revenue')
+
+TPR <- caretmat_gbm$byClass["Sensitivity"]  # True Positive Rate (Recall)
+FPR <- 1 - caretmat_gbm$byClass["Specificity"]
+
+points(
+  x = FPR, 
+  y = TPR,
+  pch = 19,          # Solid circle point
+  col = "red",       # Color of the point
+  cex = 1          # Point size
+)
+
+text(
+  x = FPR + 0.15,    # Offset text slightly to the right
+  y = TPR - 0.08, 
+  labels = paste0("Threshold: ", round(max_F1_tau, 3)), 
+  col = "black"
+)
+
+text(
+  x = FPR + 0.15,
+  y = TPR - 0.16,  # Second label: slightly below the point
+  labels = paste("F1 Score:", round(mf, 3)),  # Example metric
+  col = "black"
+)
+
+
 
 ```
 
