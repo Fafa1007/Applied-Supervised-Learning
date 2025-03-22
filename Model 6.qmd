@@ -62,39 +62,38 @@ num_cores <- detectCores() - 1  # Leave 1 core free for system processes
 
 #ctrl <- trainControl(method = 'cv', number = 10, verboseIter = T, allowParallel = TRUE)
 
-#calif_gbm_grid <- expand.grid(n.trees = c(1000, 10000, 30000),
+#gbm_grid <- expand.grid(n.trees = c(1000, 10000, 30000),
 #                              interaction.depth = c(2, 5, 8),
 #                              shrinkage = c(0.01, 0.005),
 #                              n.minobsinnode = 10)
 #
-#calif_gbm_gridsearch <- train(Revenue ~ ., data = train,
+#gbm_model <- train(Revenue ~ ., data = train,
 #                              method = 'gbm',
 #                              distribution = 'bernoulli',
 #                              trControl = ctrl,
 #                              verbose = T,
-#                              tuneGrid = calif_gbm_grid)
+#                              tuneGrid = gbm_grid)
 #stopCluster(cl)
 #registerDoSEQ()
 
-if (!dir.exists("data")) dir.create("data")  # Create 'data' folder if missing
-# save(calif_gbm_gridsearch, file = 'data/gbm_calif_50k.Rdata')
-load('data/gbm_calif_50k.Rdata')
+# save(gbm_model, file = 'R Data/gbm.Rdata')
+load('R Data/gbm.Rdata')
 
-plot(calif_gbm_gridsearch)
+plot(gbm_model)
 
 train$Revenue <- as.numeric(train$Revenue) - 1
 
 #calif_fe_gbm <-   gbm(Revenue ~ ., data = train, 
 #                      distribution = "bernoulli", 
-#                      n.trees = calif_gbm_gridsearch$bestTune$n.trees, 
-#                      interaction.depth = calif_gbm_gridsearch$bestTune$interaction.depth, 
-#                      shrinkage = calif_gbm_gridsearch$bestTune$shrinkage, 
+#                      n.trees = gbm_model$bestTune$n.trees, 
+#                      interaction.depth = gbm_model$bestTune$interaction.depth, 
+#                      shrinkage = gbm_model$bestTune$shrinkage, 
 #                      bag.fraction = 1, 
 #                      cv.folds = 10,  #built-in CV
 #                      n.cores = 9,   #which can be parallelised
 #                      verbose = T)
 
-#save(calif_fe_gbm, file = 'data/gbm_calif_100k.Rdata')
+#save(gbm_model, file = 'R Data/gbm_calif_100k.Rdata')
 load('data/gbm_calif_100k.Rdata')
 
 ```
@@ -106,7 +105,7 @@ load('data/gbm_calif_100k.Rdata')
 ## Model Evaluation (ques 1 b)
 
 ```{r}
-prob_pred_gbm <- predict(calif_fe_gbm, valid[, -16], type = "response", n.trees = calif_fe_gbm$bestTune$n.trees)
+prob_pred_gbm <- predict(gbm_model, valid[, -16], type = "response", n.trees = gbm_model$bestTune$n.trees)
 yhat_gbm <- ifelse(prob_pred_gbm >= 0.5,'Revenue', "No Revenue")
 y_gbm <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
 cat("Confusion Matrix using Predicted Probabilities")
@@ -143,17 +142,19 @@ compar[6,] <- combined
 ```{r}
 # Variable Importance Plots
 plot.new()
-d <- gbm.perf(calif_fe_gbm)
+d <- gbm.perf(gbm_model)
 legend('topright', c('CV error', 'Training error'), col = c('green', 'black'), lty = 1)
 
 
 par(mar=c(5,6,4,1) + 0.1)
-calif_gbm_varimp <- summary(calif_fe_gbm, n.trees = d, las = 1, xlim = c(0, 50))
+calif_gbm_varimp <- summary(gbm_model, n.trees = d, las = 1, xlim = c(0, 50))
+
+plot(varImp(gbm_model))
 
 # Partial Dependency Plots
 
 # Get variable importance from the GBM model
-var_importance <- summary(calif_fe_gbm, plotit = FALSE)
+var_importance <- summary(gbm_model, plotit = FALSE)
 
 # Select top N variables (e.g., top 4)
 top_vars <- var_importance$var[1:4]
@@ -162,10 +163,10 @@ library(gridExtra)
 library(grid)
 
 ylims <- c(-5,2)
-p1 <- plot.gbm(calif_fe_gbm, 'PageValues', d, ylim = ylims, ylab = '')
-p2 <- plot.gbm(calif_fe_gbm, 'Month', d, ylim = ylims, ylab = '')
-p3 <- plot.gbm(calif_fe_gbm, 'BounceRates', d, ylim = ylims, ylab = '')
-p4 <- plot.gbm(calif_fe_gbm, 'ProductRelated_Duration', d, ylim = ylims, ylab = '')
+p1 <- plot.gbm(gbm_model, 'PageValues', d, ylim = ylims, ylab = '')
+p2 <- plot.gbm(gbm_model, 'Month', d, ylim = ylims, ylab = '')
+p3 <- plot.gbm(gbm_model, 'BounceRates', d, ylim = ylims, ylab = '')
+p4 <- plot.gbm(gbm_model, 'ProductRelated_Duration', d, ylim = ylims, ylab = '')
 
 grid.arrange(p1, p2, p3, p4, ncol = 2)
 grid.text('Revenue', x = 0, vjust = 1, rot = 90)
@@ -180,7 +181,7 @@ grid.text('Revenue', x = 0, vjust = 1, rot = 90)
 #| message: false
 
 # Finding Maximum F1 Score and Corresponding Tau
-prob_pred_gbm <- predict(calif_fe_gbm, valid[, -16], type = "response", n.trees = calif_fe_gbm$bestTune$n.trees)
+prob_pred_gbm <- predict(gbm_model, valid[, -16], type = "response", n.trees = gbm_model$bestTune$n.trees)
 
 F1_score_vec <- vector()
 tau <- vector()
@@ -201,12 +202,12 @@ for (i in seq_i) {
 
 df <- data.frame(x = tau, y = F1_score_vec)
 mf_gbm <- max(F1_score_vec)
-max_F1_tau <- df$x[df$y == mf_gbm]
+max_F1_tau_gbm <- df$x[df$y == mf_gbm]
 
 # Plotting F Score Account Tau
 df <- data.frame(x = tau, y = F1_score_vec)
 
-f1_t_6 <- ggplot() + geom_line(data = df, aes(x = x, y = y)) + geom_vline(xintercept = max_F1_tau, color = "red", linetype = "dashed") + theme_minimal() + labs(x = "Tau", y = "F1 Score", title = "F1 Score Against Different Desician Rule Thresholds (Tau) for a GBM Model")
+f1_t_6 <- ggplot() + geom_line(data = df, aes(x = x, y = y)) + geom_vline(xintercept = max_F1_tau_gbm, color = "red", linetype = "dashed") + theme_minimal() + labs(x = "Tau", y = "F1 Score", title = "F1 Score Against Different Desician Rule Thresholds (Tau) for a GBM Model")
 f1_t_6
 
 # ROC Curve Plot
@@ -216,7 +217,7 @@ plot.new()        # Start a new plot (if needed)
 plot(perf_gbm, colorize = FALSE, col = 'black')
 lines(c(0,1), c(0,1), col = 'gray', lty = 4)
 
-yhat_gbm <- ifelse(prob_pred_gbm >= max_F1_tau,'Revenue', "No Revenue")
+yhat_gbm <- ifelse(prob_pred_gbm >= max_F1_tau_gbm,'Revenue', "No Revenue")
 y_gbm <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
 cat("Confusion Matrix using Predicted Probabilities")
 (confmat <- table(yhat_gbm, y_gbm, dnn = c('Predicted label', 'True label')))
@@ -237,7 +238,7 @@ points(
 text(
   x = FPR + 0.15,    # Offset text slightly to the right
   y = TPR - 0.08, 
-  labels = paste0("Threshold: ", round(max_F1_tau, 3)), 
+  labels = paste0("Threshold: ", round(max_F1_tau_gbm, 3)), 
   col = "black"
 )
 
@@ -249,7 +250,7 @@ text(
 )
 
 # Maximum F1 Score And Corresponding Threshold
-mean(max_F1_tau)
+mean(max_F1_tau_gbm)
 mf_gbm
 
 
