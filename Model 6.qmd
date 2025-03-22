@@ -4,11 +4,7 @@ Apply 10-fold cross-validation throughout to measure classification accuracy
 
 ## Modelling decision threshold of 0.5
 
-<<<<<<< HEAD
 ```{R}
-=======
-```{R}         
->>>>>>> b8a9f5b494dad67a6e799d27bcbde0f629e98445
 #| warning: false
 
 library(caret)        
