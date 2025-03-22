@@ -137,24 +137,6 @@ grid.text('Revenue', x = 0, vjust = 1, rot = 90)
 
 ```{r}
 #| warning: false
-
-# Finding Maximum F1 Score and Corresponding Tau
-prob_pred_gbm <- predict(calif_fe_gbm, valid[, -16], type = "response", n.trees = calif_fe_gbm$bestTune$n.trees)
-
-F1_score_vec <- vector()
-tau <- vector()
-seq_i <- seq(min(prob_pred_gbm) + 0.0001 ,max(prob_pred_gbm) - 0.0001,length = 1000)
-index <- 1
-
-for (i in seq_i) {
-  yhat_gbm <- ifelse(prob_pred_gbm >= i,'Revenue', "No Revenue")
-  y_gbm <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
-  cat("Confusion Matrix using Predicted Probabilities")
-  (confmat <- table(yhat_gbm, y_gbm, dnn = c('Predicted label', 'True label')))
-
-## Optimising F1 Score
-
-#| warning: false
 #| message: false
 
 # Finding Maximum F1 Score and Corresponding Tau
