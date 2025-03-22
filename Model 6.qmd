@@ -200,8 +200,8 @@ for (i in seq_i) {
 }
 
 df <- data.frame(x = tau, y = F1_score_vec)
-mf <- max(F1_score_vec)
-max_F1_tau <- df$x[df$y == mf]
+mf_gbm <- max(F1_score_vec)
+max_F1_tau <- df$x[df$y == mf_gbm]
 
 # Plotting F Score Account Tau
 df <- data.frame(x = tau, y = F1_score_vec)
@@ -244,10 +244,13 @@ text(
 text(
   x = FPR + 0.15,
   y = TPR - 0.16,  # Second label: slightly below the point
-  labels = paste("F1 Score:", round(mf, 3)),  # Example metric
+  labels = paste("F1 Score:", round(mf_gbm, 3)),  # Example metric
   col = "black"
 )
 
+# Maximum F1 Score And Corresponding Threshold
+mean(max_F1_tau)
+mf_gbm
 
 
 ```

@@ -158,7 +158,7 @@ max_F1_tau <- df$x[df$y == mf]
 # Plotting F Score Account Tau
 df <- data.frame(x = tau, y = F1_score_vec)
 
-f1_t_3 <- ggplot() + geom_line(data = df, aes(x = x, y = y)) + geom_vline(xintercept = max_F1_tau, color = "red", linetype = "dashed") + theme_minimal() + labs(x = "Tau", y = "F1 Score", title = "F1 Score Against Different Desician Rule Thresholds (Tau) for a KNN Model")
+f1_t_3 <- ggplot() + geom_line(data = df, aes(x = x, y = y)) + geom_vline(xintercept = mean(max_F1_tau), color = "red", linetype = "dashed") + theme_minimal() + labs(x = "Tau", y = "F1 Score", title = "F1 Score Against Different Desician Rule Thresholds (Tau) for a KNN Model")
 f1_t_3
 
 # ROC Curve Plot
@@ -187,18 +187,24 @@ points(
 )
 
 text(
-  x = FPR_knn + 0.15,    # Offset text slightly to the right
-  y = TPR_knn - 0.08, 
-  labels = paste0("Threshold: ", round(max_F1_tau, 3)), 
-  col = "black"
-)
-
-text(
   x = FPR_knn + 0.15,
   y = TPR_knn - 0.16,  # Second label: slightly below the point
   labels = paste("F1 Score:", round(mf, 3)),  # Example metric
   col = "black"
 )
+
+text(
+  x = FPR_knn + 0.15,
+  y = TPR_knn - 0.08,  # Second label: slightly below the point
+  labels = paste("Threshold:", round(mean(max_F1_tau), 3)),  # Example metric
+  col = "black"
+)
+
+# Maximum F1 Score And Corresponding Threshold
+mean(max_F1_tau)
+mf
+
+
 ```
 ------------------------------------------------------------------------
 
