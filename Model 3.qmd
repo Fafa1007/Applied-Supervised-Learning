@@ -2,50 +2,21 @@
 
 Apply 10-fold cross-validation throughout to measure classification accuracy
 
-#### Set-Up
-
-```{r}
-library(class)
-library(ggplot2)
-library(caret)
-library(gbm)
-library(xgboost)
-library(ROCR)
-library(dplyr)
-library(tidyverse)
-library(knitr)
-
-train <- read.csv("online_shopping_train.csv")
-test <- read.csv("online_shopping_testing.csv")
-valid <- read.csv("online_shopping_valid.csv")
-
-head(train)
-
-factor_cols <- c("Month", "OperatingSystems", "Browser", "VisitorType", "Weekend", "Revenue")
-
-scale_cols <- c("Administrative","Administrative_Duration", "Informational", "Informational_Duration","ProductRelated","SpecialDay", "ProductRelated_Duration","BounceRates", "ExitRates", "PageValues")
-
-train[factor_cols] <- lapply(train[factor_cols], factor)
-train[scale_cols] <- lapply(train[scale_cols], scale)
-y_train <- train["Revenue"]
-x_train <- train[, -16]
-
-valid[factor_cols] <- lapply(valid[factor_cols], factor)
-valid[scale_cols] <- lapply(valid[scale_cols], scale)
-y_valid <- valid["Revenue"]
-x_valid <- valid[,-16]
-
-test[head(factor_cols,-1)] <- lapply(test[head(factor_cols,-1)], factor)
-test[scale_cols] <- lapply(test[scale_cols], scale)
-```
-
 ## Modelling
 
 ```{r}
 #| warning: false
 
+library(caret)
+library(class) 
+
+set.seed(4046)
+
+# Firstly, define the range of k values for tuning (1 to 30)
 N <- 30
 
+
+# Secondly, perform k-Nearest Neighbors (kNN) with 10-fold cross-validation to find the optimal number of neighbors (k) for classification
 knn_model <- train(Revenue ~ ., 
                 data = train,
                 method = "knn",
@@ -53,11 +24,57 @@ knn_model <- train(Revenue ~ .,
                 tuneGrid = expand.grid(k = 1:N))
 
 
-## knn_pred <- predict(knn_model, valid[,-16])
+# Lastly, a plot of the performance of each of the neighbours
+plot(knn_model)
 
-save(knn_model, file = 'R Data/gbm.Rdata')
-load('R Data/gbm.Rdata')
+save(knn_model, file = 'R Data/K Nearest Neighbours Model.Rdata')
 
+```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Model Evaluation 
+
+```{r}
+library(MLmetrics)
+library(caret)
+library(knitr)
+library(dplyr)
+library(ROCR)
+
+# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from model
+knn_predict_probabilities <- predict(knn_cv, newdata = valid, type = "prob")[, "1"]
+
+# Secondly, create a confusion matrix
+yhat <- ifelse(knn_predict_probabilities >= 0.5,'Revenue', "No Revenue")
+y <- matrix(ifelse(as.numeric(unlist(valid[,16]))==1, 'Revenue', "No Revenue"))
+cat("Confusion Matrix using Predicted Probabilities")
+(confmat <- table(yhat, y, dnn = c('Predicted label', 'True label')))
+
+caretmat <- confusionMatrix(as.factor(yhat), as.factor(y), positive = 'Revenue')
+caretmat 
+
+Sensitivity <- caretmat$byClass["Sensitivity"]  # True Positive Rate (Recall)
+Specificity <- caretmat$byClass["Specificity"]  # True Negative Rate
+Precision <- caretmat$byClass["Precision"]      # Positive Predictive Value
+F1_score <- caretmat$byClass["F1"]              # F1 Score
+Accuracy <- caretmat$overall["Accuracy"]        # Accuracy
+Missclassification_Rate <- mean(yhat != y)
+
+# AUC (only works with binary data)
+yhat <- ifelse(knn_predict_probabilities >= 0.5, 1, 0)
+y <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 1, 0))
+pred_obj <- prediction(y, yhat)
+ROC_AUC <- performance(pred_obj, measure = "auc")@y.values[[1]]
+
+# Lastly, put them all into a table
+combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
+rownames(combined) <- c("Polynomial Logistic Regression")
+kable(combined)
+
+compar[3,] <- combined
 ```
 
 ------------------------------------------------------------------------
@@ -105,9 +122,12 @@ compar[3,] <- combined
 
 ## Inference/Interpretation
 
-```{r}
 
-```
+Since we can't plot out a graph for all the dimensions and there's no coefficients, we can't interpret the model besides looking at their evaluation metrics
+
+Remembering the way that KNN works is by making a grid that has a point in each part of the space, and looks at the k nearest points in the space and their corresponding categories, then predicting that point in the space to be the majority category.
+
+If a new observation is taken, then we will find it on the grid and see what the KNN model predicted.
 
 ------------------------------------------------------------------------
 
@@ -116,8 +136,14 @@ compar[3,] <- combined
 ## Optimising F1 Score
 
 ```{r}
+
 #| warning: false
 #| message: false
+
+library(caret)
+library(pROC)
+library(class)
+
 
 # Finding Maximum F1 Score and Corresponding Tau
 knn_predict_probabilities <- predict(knn_model, newdata = valid, type = "prob")[, "1"]
@@ -151,6 +177,7 @@ f1_t_3
 
 # ROC Curve Plot
 pred_knn <- prediction(as.numeric(knn_predict_probabilities), as.numeric(valid[,16]))
+
 perf_knn  <- performance(pred_knn, 'tpr', 'fpr')
 plot.new()        # Start a new plot (if needed)
 plot(perf_knn, colorize = FALSE, col = 'black')
@@ -192,7 +219,6 @@ text(
 mean(max_F1_tau_knn)
 mf_knn
 
-
 ```
 ------------------------------------------------------------------------
 
@@ -201,5 +227,4 @@ mf_knn
 ## Prediction
 
 ```{r}
-
 ```

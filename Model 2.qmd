@@ -10,6 +10,8 @@ Vanilla Model
 
 ```{r}
 # Vanilla Logistic Regression Model
+set.seed(4026)
+
 log_mod <- glm(Revenue ~ ., family = binomial,data = train)
 log_mod %>% 
   tidy() %>%
@@ -18,55 +20,21 @@ log_mod %>%
 
 Polynomial Logistic Regression Models (choose the variables to make 5th degree polynomials by looking at the most significant numerical variables from the vanilla model)
 
-1.  Polynomial Logistic Model with all variables
-
 ```{r}
-poly_log1 <- glm(Revenue ~ 
+set.seed(4026)
+
+poly_log <- glm(Revenue ~ 
             Informational + I(Informational^2) + I(Informational^3) +I(Informational^4) + 
             ProductRelated_Duration + I(ProductRelated_Duration^2) + I(ProductRelated_Duration^3) + I(ProductRelated_Duration^4) +
             ExitRates + I(ExitRates^2) + I(ExitRates^3) + I(ExitRates^4) + 
             PageValues + I(PageValues^2) + I(PageValues^3) + I(PageValues^4) + .
             ,data = train, family = 'binomial')
-poly_log1 %>% 
+poly_log %>% 
   tidy() %>%
   kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using all the varibles')
+
+save(poly_log, file = 'R Data/Polynomial Logistic Regression Model.Rdata')
 ```
-
-2.  Polynomial Logistic Model with only the polynomial variables
-
-```{r}
-poly_log2 <- glm(Revenue ~ 
-            Informational + I(Informational^2) + I(Informational^3) +I(Informational^4) + 
-            ProductRelated_Duration + I(ProductRelated_Duration^2) + I(ProductRelated_Duration^3) + I(ProductRelated_Duration^4) +
-            ExitRates + I(ExitRates^2) + I(ExitRates^3) + I(ExitRates^4) + 
-            PageValues + I(PageValues^2) + I(PageValues^3) + I(PageValues^4) 
-            ,data = train, family = 'binomial')
-poly_log2 %>% 
-  tidy() %>%
-  kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using only the polynomial variables')
-
-```
-
-------------------------------------------------------------------------
-
-\newpage
-
-## Inference/Interpretation
-
-```{r}
-# Coefficients
-poly_log1 %>% 
-  tidy() %>%
-  kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using all the varibles')
-```
-
-1.  **PageValues is the most significant predictor with strong non-linear effects**: The linear term for *PageValues* (3.31, p \< 0.00) has the highest positive coefficient, indicating that higher page values significantly increase the likelihood of purchase. However, the squared term (*I(PageValues\^2)*, -1.07, p \< 0.00) and higher-order polynomial terms reveal a non-linear relationship, suggesting diminishing returns at very high page values. This aligns with the study's focus on leveraging clickstream data to predict purchasing intent, emphasizing the importance of high-value page interactions.
-
-2.  **ExitRates and BounceRates negatively impact purchasing intent**: Both *ExitRates* (-0.68, p = 0.01) and *BounceRates* (-0.60, p = 0.01) have significant negative coefficients, indicating that higher exit and bounce rates reduce the likelihood of purchase. While the polynomial terms for *ExitRates* are not statistically significant, the linear term underscores the importance of retaining visitors on the site to improve conversion rates, as highlighted in the study.
-
-3.  **Temporal factors show strong seasonal effects**: Months like *November* (0.51, p = 0.01) have a positive coefficient, indicating higher purchasing intent during this period, likely due to holiday shopping. Conversely, *February* (-1.71, p = 0.03), *December* (-0.74, p \< 0.00), *March* (-0.72, p \< 0.00), and *May* (-0.77, p \< 0.00) show significant negative coefficients, reflecting lower shopping activity during these months. These findings align with the study's emphasis on using session data to capture temporal patterns in shopper behavior.
-
-4.  **Visitor type and weekend visits influence purchasing intent**: *Returning_Visitor* (-0.54, p \< 0.00) has a significant negative coefficient, suggesting that returning visitors are less likely to purchase compared to new visitors. Additionally, *WeekendTRUE* (0.20, p = 0.03) has a positive coefficient, indicating that visits during weekends are associated with higher purchasing intent. These insights support the study's focus on combining visitor-type and temporal features to improve prediction accuracy.
 
 ------------------------------------------------------------------------
 
@@ -82,7 +50,7 @@ library(dplyr)
 library(ROCR)
 
 # Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from the model
-pred_probabilities <- predict(poly_log1,x_valid, type = "response")
+pred_probabilities <- predict(poly_log,x_valid, type = "response")
 
 # Secondly, create a confusion matrix
 yhat <- ifelse(pred_probabilities >= 0.5,'Revenue', "No Revenue")
@@ -114,6 +82,27 @@ kable(combined)
 
 compar[2,] <- combined
 ```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Inference/Interpretation
+
+```{r}
+# Coefficients
+poly_log %>% 
+  tidy() %>%
+  kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using all the varibles')
+```
+
+1.  **PageValues is the most significant predictor with strong non-linear effects**: The linear term for *PageValues* (3.31, p \< 0.00) has the highest positive coefficient, indicating that higher page values significantly increase the likelihood of purchase. However, the squared term (*I(PageValues\^2)*, -1.07, p \< 0.00) and higher-order polynomial terms reveal a non-linear relationship, suggesting diminishing returns at very high page values. This aligns with the study's focus on leveraging clickstream data to predict purchasing intent, emphasizing the importance of high-value page interactions.
+
+2.  **ExitRates and BounceRates negatively impact purchasing intent**: Both *ExitRates* (-0.68, p = 0.01) and *BounceRates* (-0.60, p = 0.01) have significant negative coefficients, indicating that higher exit and bounce rates reduce the likelihood of purchase. While the polynomial terms for *ExitRates* are not statistically significant, the linear term underscores the importance of retaining visitors on the site to improve conversion rates, as highlighted in the study.
+
+3.  **Temporal factors show strong seasonal effects**: Months like *November* (0.51, p = 0.01) have a positive coefficient, indicating higher purchasing intent during this period, likely due to holiday shopping. Conversely, *February* (-1.71, p = 0.03), *December* (-0.74, p \< 0.00), *March* (-0.72, p \< 0.00), and *May* (-0.77, p \< 0.00) show significant negative coefficients, reflecting lower shopping activity during these months. These findings align with the study's emphasis on using session data to capture temporal patterns in shopper behavior.
+
+4.  **Visitor type and weekend visits influence purchasing intent**: *Returning_Visitor* (-0.54, p \< 0.00) has a significant negative coefficient, suggesting that returning visitors are less likely to purchase compared to new visitors. Additionally, *WeekendTRUE* (0.20, p = 0.03) has a positive coefficient, indicating that visits during weekends are associated with higher purchasing intent. These insights support the study's focus on combining visitor-type and temporal features to improve prediction accuracy.
 
 ------------------------------------------------------------------------
 

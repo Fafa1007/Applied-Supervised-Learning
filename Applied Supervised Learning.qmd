@@ -35,6 +35,17 @@ test[head(factor_cols,-1)] <- lapply(test[head(factor_cols,-1)], factor)
 test[scale_cols] <- lapply(test[scale_cols], scale)
 ```
 
+```{r}
+if (!dir.exists("R Data")) dir.create("R Data")  # Create 'data' folder if missing
+
+load('R Data/Logistic Regression Elastic Regularisation Model.Rdata')
+load('R Data/Polynomial Logistic Regression Model.Rdata')
+load('R Data/K Nearest Neighbours Model.Rdata')
+load('R Data/Pruned Classification Tree Model.Rdata')
+load('R Data/Random Forest Model.Rdata')
+load('R Data/Gradient Boosted Model.Rdata')
+```
+
 ------------------------------------------------------------------------
 
 \newpage
@@ -72,4 +83,3 @@ ggplot(df_long, aes(x = Metric, y = Value, fill = Model)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels
 ```
-

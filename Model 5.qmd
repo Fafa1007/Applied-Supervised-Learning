@@ -8,6 +8,7 @@ Motivating clearly for our selected hyperparameters
 
 ```{r}
 library(randomForest)
+
 set.seed(4026)
 
 # Fit a basic Random Forest model with default hyperparameters
@@ -47,60 +48,10 @@ rf_gridsearch <- train(Revenue ~ .,
 plot(rf_gridsearch)
 rf_gridsearch$finalModel
 rf_gridsearch$bestTune
+
+save(rf_gridsearch, file = 'R Data/Random Forest Model.Rdata')
 ```
 
-------------------------------------------------------------------------
-
-\newpage
-
-## Inference/Interpretation
-
-**Variable Importance Plot**
-
-```{r}
-# Variable Importance Plot 
-plot(varImp(rf_gridsearch))
-```
-
-1.  **Top Important Features**:
-
-    -   **PageValues** and **ProductRelated_Duration** are the most critical features, directly supporting the study's focus on leveraging high-value page interactions and product-related engagement to predict purchasing intent. The study emphasizes that combining clickstream data (e.g., navigation paths) with session information significantly improves prediction accuracy. Higher `PageValues` indicate a stronger likelihood of revenue generation, while longer `ProductRelated_Duration` reflects deeper engagement with product-related content, both of which are key predictors of purchasing intent.
-
-    -   **ExitRates** also play a vital role, aligning with the study's second module on predicting site abandonment likelihood. Lower exit rates are associated with higher engagement and a reduced likelihood of users leaving the site without converting, which is critical for improving purchase conversion rates.
-
-2.  **Moderately Important Features**:
-
-    -   **ProductRelated** and **Administrative_Duration** highlight the importance of user engagement with product-related pages and administrative tasks, respectively. The study uses aggregated pageview data and session information to predict purchasing intent, and these features contribute to understanding user behavior. Users who visit more product-related pages or spend time on administrative tasks (e.g., account management) are more likely to generate revenue, reinforcing the study's approach of combining multiple data sources for accurate predictions.
-
-    -   **BounceRates** further underscores the study's focus on reducing site abandonment. Lower bounce rates indicate higher engagement, which is essential for improving conversion rates and aligns with the study's goal of identifying visitors at risk of abandoning the site.
-
-3.  **Less Important Features**:
-
-    -   **Informational_Duration** and **Informational** have a smaller impact on revenue generation compared to product-related engagement, reflecting the study's finding that while informational content is valuable, it is less predictive of purchasing intent than clickstream data from navigation paths.
-
-    -   **Month-related Features** (e.g., `MonthFeb`, `MonthDec`) show varying importance, supporting the study's observation of seasonal trends in shopper behavior. While these features provide some predictive power, they are secondary to engagement metrics like `PageValues` and `ProductRelated_Duration`.
-
-    -   **VisitorType** (e.g., Returning Visitor, Other) offers additional context but is less critical than engagement metrics. This aligns with the study's use of session information to refine predictions, where visitor type complements but does not overshadow the importance of behavioral data.
-
-**Partial Dependency Plots**
-
-```{r}
-library(gridExtra)
-library(grid)
-library(pdp)
-library(ranger)
-library(caret)
-
-predict_function <- function(model, newdata) {
-  predict(model, data = newdata)$predictions
-}
-
-train_df <- as.data.frame(train)
-
-final_model <- rf_gridsearch$finalModel
-p1 <- partial(final_model, "ProductRelated_Duration", train = as.matrix(x_train))
-
-```
 
 ------------------------------------------------------------------------
 
@@ -155,6 +106,71 @@ compar[5,] <- combined
 
 \newpage
 
+## Inference/Interpretation
+
+**Variable Importance Plot**
+
+```{r}
+library(randomForest)
+# Variable Importance Plot Method 1
+plot(varImp(rf_gridsearch))
+
+# Variable Importance Plot Method 2 (issue doesn't have all the lables)
+rf_variable_importance <- varImp(rf_gridsearch)$importance
+rf_variable_importance <- rf_variable_importance[order(rf_variable_importance$Overall, decreasing = FALSE), , drop = FALSE]
+barplot(rf_variable_importance$Overall, 
+        names.arg = rownames(rf_variable_importance), 
+        horiz = TRUE, 
+        col = 'navy', 
+        las = 1, 
+        xlab = 'Mean Decrease in Impurity (Importance)', 
+        main = 'Variable Importance from Random Forest')
+```
+
+1.  **Top Important Features**:
+
+    -   **PageValues** and **ProductRelated_Duration** are the most critical features, directly supporting the study's focus on leveraging high-value page interactions and product-related engagement to predict purchasing intent. The study emphasizes that combining clickstream data (e.g., navigation paths) with session information significantly improves prediction accuracy. Higher `PageValues` indicate a stronger likelihood of revenue generation, while longer `ProductRelated_Duration` reflects deeper engagement with product-related content, both of which are key predictors of purchasing intent.
+
+    -   **ExitRates** also play a vital role, aligning with the study's second module on predicting site abandonment likelihood. Lower exit rates are associated with higher engagement and a reduced likelihood of users leaving the site without converting, which is critical for improving purchase conversion rates.
+
+2.  **Moderately Important Features**:
+
+    -   **ProductRelated** and **Administrative_Duration** highlight the importance of user engagement with product-related pages and administrative tasks, respectively. The study uses aggregated pageview data and session information to predict purchasing intent, and these features contribute to understanding user behavior. Users who visit more product-related pages or spend time on administrative tasks (e.g., account management) are more likely to generate revenue, reinforcing the study's approach of combining multiple data sources for accurate predictions.
+
+    -   **BounceRates** further underscores the study's focus on reducing site abandonment. Lower bounce rates indicate higher engagement, which is essential for improving conversion rates and aligns with the study's goal of identifying visitors at risk of abandoning the site.
+
+3.  **Less Important Features**:
+
+    -   **Informational_Duration** and **Informational** have a smaller impact on revenue generation compared to product-related engagement, reflecting the study's finding that while informational content is valuable, it is less predictive of purchasing intent than clickstream data from navigation paths.
+
+    -   **Month-related Features** (e.g., `MonthFeb`, `MonthDec`) show varying importance, supporting the study's observation of seasonal trends in shopper behavior. While these features provide some predictive power, they are secondary to engagement metrics like `PageValues` and `ProductRelated_Duration`.
+
+    -   **VisitorType** (e.g., Returning Visitor, Other) offers additional context but is less critical than engagement metrics. This aligns with the study's use of session information to refine predictions, where visitor type complements but does not overshadow the importance of behavioral data.
+
+**Partial Dependency Plots**
+
+```{r}
+library(gridExtra)
+library(grid)
+library(pdp)
+library(ranger)
+library(caret)
+
+predict_function <- function(model, newdata) {
+  predict(model, data = newdata)$predictions
+}
+
+train_df <- as.data.frame(train)
+
+final_model <- rf_gridsearch$finalModel
+p1 <- partial(final_model, "ProductRelated_Duration", train = as.matrix(x_train))
+
+```
+
+------------------------------------------------------------------------
+
+\newpage
+
 ## Optimizing F1 Score
 
 ------------------------------------------------------------------------
@@ -162,3 +178,6 @@ compar[5,] <- combined
 \newpage
 
 ## Prediction
+```{r}
+
+```
