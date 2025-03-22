@@ -1,22 +1,50 @@
-# xgBoost Tree Model
+# GBM Tree Model
+
+#### Set-Up
 
 Apply 10-fold cross-validation throughout to measure classification accuracy
 
 ## Modelling
 
-------------------------------------------------------------------------
-
-\newpage
-
-## Inference/Interpretation
-
-------------------------------------------------------------------------
-
-\newpage
-
-## Model Evaluation (ques 1 b)
-
 ```{r}
+#| warning: false
+
+library(caret)        
+library(gbm)          
+library(parallel)     
+library(doParallel)   
+
+set.seed(4026)
+
+# Firstly, detect the number of available CPU cores and leave 1 core free for system processes
+num_cores <- detectCores() - 1  # Leave 1 core free for system processes
+
+# Secondly, register the parallel backend to speed up training
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
+
+# Thirdly, define cross-validation settings with 10-fold CV and enable parallel processing
+ctrl <- trainControl(method = 'cv', number = 10, verboseIter = T, allowParallel = TRUE)
+
+# Fourthly, define the hyperparameter grid for tuning the GBM model
+calif_gbm_grid <- expand.grid(n.trees = c(1000, 10000, 30000),
+                              interaction.depth = c(2, 5, 8),
+                              shrinkage = c(0.01, 0.005),
+                              n.minobsinnode = 10)
+
+# Fifthly, train the GBM model using grid search with cross-validation (do in parallel)
+# This is also our final GBM model
+calif_gbm_gridsearch <- train(Revenue ~ ., data = train,
+                              method = 'gbm',
+                              distribution = 'bernoulli',
+                              trControl = ctrl,
+                              verbose = T,
+                              tuneGrid = calif_gbm_grid)
+stopCluster(cl)
+registerDoSEQ()
+plot(calif_gbm_gridsearch)
+
+save(calif_gbm_gridsearch, file = 'R Data/Gradient Boosted Model.Rdata')
 
 ```
 
@@ -24,10 +52,156 @@ Apply 10-fold cross-validation throughout to measure classification accuracy
 
 \newpage
 
-## Optimizing F1 Score
+## Model Evaluation
+
+```{r}
+library(MLmetrics)
+library(caret)
+library(knitr)
+library(dplyr)
+library(ROCR)
+
+# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from model
+prob_pred_gbm <- predict(calif_fe_gbm, valid[, -16], type = "response", n.trees = calif_fe_gbm$bestTune$n.trees)
+
+# Secondly, create a confusion matrix
+yhat_gbm <- ifelse(prob_pred_gbm >= 0.5,'Revenue', "No Revenue")
+y_gbm <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
+cat("Confusion Matrix using Predicted Probabilities")
+(confmat <- table(yhat_gbm, y_gbm, dnn = c('Predicted label', 'True label')))
+
+caretmat <- confusionMatrix(as.factor(yhat_gbm), as.factor(y_gbm), positive = 'Revenue')
+caretmat 
+
+Sensitivity <- caretmat$byClass["Sensitivity"]  # True Positive Rate (Recall)
+Specificity <- caretmat$byClass["Specificity"]  # True Negative Rate
+Precision <- caretmat$byClass["Precision"]      # Positive Predictive Value
+F1_score <- caretmat$byClass["F1"]              # F1 Score
+Accuracy <- caretmat$overall["Accuracy"]        # Accuracy
+Missclassification_Rate <- mean(yhat_gbm != y_gbm)
+
+# AUC (only works with binary data)
+y_gbm <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 1, 0))
+pred_obj_gbm <- prediction(as.numeric(prob_pred_gbm), as.numeric(y_gbm))
+ROC_AUC <- performance(pred_obj_gbm, measure = "auc")@y.values[[1]]
+
+combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
+rownames(combined) <- c("Polynomial Logistic Regression")
+kable(combined)
+
+compar[6,] <- combined
+```
+
+------------------------------------------------------------------------
+
+\newpage
+
+## Inference/Interpretation
+
+Variable Importance Plots
+```{r}
+# Variable Importance Plots
+plot.new()
+d <- gbm.perf(calif_fe_gbm)
+legend('topright', c('CV error', 'Training error'), col = c('green', 'black'), lty = 1)
+
+
+par(mar=c(5,6,4,1) + 0.1)
+calif_gbm_varimp <- summary(calif_fe_gbm, n.trees = d, las = 1, xlim = c(0, 50))
+```
+
+Partial Dependency Plots
+```{r}
+# Partial Dependency Plots
+
+# Get variable importance from the GBM model
+var_importance <- summary(calif_fe_gbm, plotit = FALSE)
+
+# Select top N variables (e.g., top 4)
+top_vars <- var_importance$var[1:4]
+
+library(gridExtra)
+library(grid)
+
+ylims <- c(-5,2)
+p1 <- plot.gbm(calif_fe_gbm, 'PageValues', d, ylim = ylims, ylab = '')
+p2 <- plot.gbm(calif_fe_gbm, 'Month', d, ylim = ylims, ylab = '')
+p3 <- plot.gbm(calif_fe_gbm, 'BounceRates', d, ylim = ylims, ylab = '')
+p4 <- plot.gbm(calif_fe_gbm, 'ProductRelated_Duration', d, ylim = ylims, ylab = '')
+
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+grid.text('Revenue', x = 0, vjust = 1, rot = 90)
+```
+
+------------------------------------------------------------------------
+
+## Optimising F1 Score
+
+```{r}
+#| warning: false
+
+# Finding Maximum F1 Score and Corresponding Tau
+prob_pred_gbm <- predict(calif_fe_gbm, valid[, -16], type = "response", n.trees = calif_fe_gbm$bestTune$n.trees)
+
+F1_score_vec <- vector()
+tau <- vector()
+seq_i <- seq(min(prob_pred_gbm) + 0.0001 ,max(prob_pred_gbm) - 0.0001,length = 1000)
+index <- 1
+
+for (i in seq_i) {
+  yhat_gbm <- ifelse(prob_pred_gbm >= i,'Revenue', "No Revenue")
+  y_gbm <- matrix(ifelse(as.numeric(unlist(valid[,16]))==2, 'Revenue', "No Revenue"))
+  cat("Confusion Matrix using Predicted Probabilities")
+  (confmat <- table(yhat_gbm, y_gbm, dnn = c('Predicted label', 'True label')))
+
+  caretmat <- confusionMatrix(as.factor(yhat_gbm), as.factor(y_gbm), positive = 'Revenue')
+   
+  F1_score_vec[index] <- caretmat$byClass["F1"]
+  tau[index] <- i
+  index <- index + 1
+}
+
+df <- data.frame(x = tau, y = F1_score_vec)
+mf <- max(F1_score_vec)
+max_F1_tau <- df$x[df$y == mf]
+
+# Plotting F Score Account Tau
+df <- data.frame(x = tau, y = F1_score_vec)
+
+ggplot() + geom_line(data = df, aes(x = x, y = y)) + geom_vline(xintercept = max_F1_tau, color = "red", linetype = "dashed") + theme_minimal() + labs(x = "Tau", y = "F1 Score")
+
+
+# ROC Curve Plot
+pred_gbm <- prediction(as.numeric(prob_pred_gbm), as.numeric(valid[,16]))
+perf_gbm  <- performance(pred_gbm, 'tpr', 'fpr')
+plot.new()        # Start a new plot (if needed)
+plot(perf_gbm, colorize = FALSE, col = 'black')
+lines(c(0,1), c(0,1), col = 'gray', lty = 4)
+
+auc <- performance(pred_gbm, measure = 'auc')@y.values[[1]]
+
+```
 
 ------------------------------------------------------------------------
 
 \newpage
 
 ## Prediction
+```{r}
+# Prediction of the 
+dat <- train
+dat$Revenue <- as.numeric(train$Revenue) - 1
+
+calif_fe_gbm <-   gbm(Revenue ~ ., data = dat, 
+                      distribution = "bernoulli", 
+                      n.trees = calif_gbm_gridsearch$bestTune$n.trees, 
+                      interaction.depth = calif_gbm_gridsearch$bestTune$interaction.depth, 
+                      shrinkage = calif_gbm_gridsearch$bestTune$shrinkage, 
+                      bag.fraction = 1, 
+                      cv.folds = 10,  #built-in CV
+                      n.cores = 9,   #which can be parallelised
+                      verbose = T)
+
+save(calif_fe_gbm, file = 'data/gbm_calif_100k.Rdata')
+load('data/gbm_calif_100k.Rdata')
+```

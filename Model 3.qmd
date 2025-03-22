@@ -7,21 +7,25 @@ Apply 10-fold cross-validation throughout to measure classification accuracy
 ```{r}
 #| warning: false
 
+library(caret)
+library(class) 
+
+set.seed(4046)
+
+# Firstly, define the range of k values for tuning (1 to 30)
 N <- 30
 
+# Secondly, perform k-Nearest Neighbors (kNN) with 10-fold cross-validation to find the optimal number of neighbors (k) for classification
 knn_cv <- train(Revenue ~ ., 
                 data = train,
                 method = "knn",
                 trControl = trainControl(method = "cv", number = 10),
                 tuneGrid = expand.grid(k = 1:N))
 
-knn_pred <- knn(train = train[scale_cols],
-                test = valid[scale_cols],
-                cl = train$Revenue,
-                k = as.numeric(knn_cv$bestTune))
+# Lastly, a plot of the performance of each of the neighbours
+plot(knn_cv)
 
-## knn_pred <- predict(knn_cv, valid[,-16])
-
+save(knn_cv, file = 'R Data/K Nearest Neighbours Model.Rdata')
 
 ```
 
@@ -29,9 +33,16 @@ knn_pred <- knn(train = train[scale_cols],
 
 \newpage
 
-## Model Evaluation (ques 1 b)
+## Model Evaluation 
 
 ```{r}
+library(MLmetrics)
+library(caret)
+library(knitr)
+library(dplyr)
+library(ROCR)
+
+# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from model
 knn_predict_probabilities <- predict(knn_cv, newdata = valid, type = "prob")[, "1"]
 
 # Secondly, create a confusion matrix
@@ -70,19 +81,11 @@ compar[3,] <- combined
 
 ## Inference/Interpretation
 
-```{r}
-# Compute feature importance
-importance <- xgb.importance(
-  feature_names = colnames(train[, -which(names(train) == "Revenue")]),
-  model = model
-)
+Since we can't plot out a graph for all the dimensions and there's no coefficients, we can't interpret the model besides looking at their evaluation metrics
 
-# Print importance
-print(importance)
+Remembering the way that KNN works is by making a grid that has a point in each part of the space, and looks at the k nearest points in the space and their corresponding categories, then predicting that point in the space to be the majority category.
 
-# Plot importance
-xgb.plot.importance(importance_matrix = importance, top_n = 10)
-```
+If a new observation is taken, then we will find it on the grid and see what the KNN model predicted.
 
 ------------------------------------------------------------------------
 
@@ -186,5 +189,4 @@ ggplot(roc_data, aes(x = FPR, y = TPR)) +
 ## Prediction
 
 ```{r}
-
 ```
