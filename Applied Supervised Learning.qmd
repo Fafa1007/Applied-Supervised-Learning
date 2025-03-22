@@ -39,20 +39,28 @@ test[scale_cols] <- lapply(test[scale_cols], scale)
 
 \newpage
 
-## Evaluation of all Six Models
+## Evaluation Metrics Of All The Models
 
 ```{r}
 library(ggplot2)
 # Combine all evaluation metrics
-compar <- matrix(0, ncol=7)
-# NOW RUN EVERY MODEL EVALUATION TO ADD TO THE MATRIX
+compar <- matrix(0, ncol=7, nrow=6)
 
-########################################################
+# FIRST, NOW RUN EVERY MODEL EVALUATION PARTS FIRST TO ADD THE EVALUATION METRICS TO THE COMPAR MATRIX
 
-compar <- compar[-1, ]
+```
+
+```{r}
+# AFTER RUNNING EVERY MODELS EVALUATION SECTIONS
+# NOW SHOULD HAVE ALL THE METERICS FOR EVERY MODEL
+colnames(compar) <- c("Sensitivity", "Specificity", "Precision", "F1_score","Accuracy", "Missclassification_Rate", "ROC_AUC")
+rownames(compar) <- c("Logistic Regression with Elastic Regularisation", "Polynomial Logistic Regression","K-Nearest-Neighbours","Classification Tree", "Tuned Random Forest",  "Gradient Boosted Model")
+
 compar
+```
 
-# Bar Plot
+```{R}
+# SECONDLY, PLOT OUT THE BAR GRAPH TO COMPARE THE METERICS FOR EACH MODEL
 df <- data.frame(compar)
 df$Model <- rownames(df)  # Add model names
 df_long <- pivot_longer(df, cols = -Model, names_to = "Metric", values_to = "Value")
@@ -64,3 +72,4 @@ ggplot(df_long, aes(x = Metric, y = Value, fill = Model)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels
 ```
+

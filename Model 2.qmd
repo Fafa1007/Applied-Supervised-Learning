@@ -53,44 +53,20 @@ poly_log2 %>%
 
 ## Inference/Interpretation
 
-1.  **Strongest Predictors**:
-
-    -   `PageValues` has the [largest positive effect]{.underline} on the target variable, with a coefficient of 3.31 (p \< 0.001), indicating that a one-unit increase in PageValues increases the log-odds of the target variable by 3.31.
-
-    -   Conversely, `ExitRates` has the [strongest negative effect]{.underline}, with a coefficient of -0.68 (p = 0.01), meaning a one-unit increase in ExitRates decreases the log-odds by -0.68. These variables are highly significant and play a critical role in influencing outcomes.
-
-2.  **Nonlinear Effects**:
-
-    -   Higher-order terms for `PageValues` reveal a complex nonlinear relationship: quadratic term = **-1.07** (p \< 0.001), cubic term = **0.12** (p \< 0.001), and quartic term = **0.00** (p \< 0.001). All are highly significant.
-
-3.  **Seasonal Effects**:
-
-    -   Several months show significant effects on the target variable. For example, **February** has a strong negative effect with a coefficient of **-1.71** (p = 0.03), while **November** has a positive effect with a coefficient of **0.51** (p = 0.01). Other significant months include **March** (coefficient = **-0.72**, p \< 0.001), **May** (coefficient = **-0.77**, p \< 0.001), and **December** (coefficient = **-0.74**, p \< 0.001). These results suggest strong seasonal trends in the data.
-
-4.  **Insignificant Predictors**:
-
-    -   Many predictors are not statistically significant (p ≥ 0.05), meaning they do not have a strong effect on the target variable. These include:
-
-        -   `Informational` and its higher-order terms (p-values: 0.11 to 0.28).
-
-        -   `ProductRelated_Duration` and its higher-order terms (p-values: 0.08 to 0.71).
-
-        -   `Administrative_Duration` (p = 0.92), `Informational_Duration` (p = 0.80), and `SpecialDay` (p = 0.90).
-
-        -   Months like **July** (p = 0.50), **June** (p = 0.32), **October** (p = 0.46), and **September** (p = 0.87).
-
-        -   Operating systems (`OperatingSystems2`: p = 0.75; `OperatingSystems3`: p = 0.33; `OperatingSystems4`: p = 0.09).
-
-        -   Browsers (`Browser2`: p = 0.84; `Browser3`: p = 0.45; `Browser4`: p = 0.65; `Browser6`: p = 0.34; `Browser10`: p = 0.65).
-
-        -   Visitor types like `VisitorTypeOther` (p = 0.34).
-
 ```{r}
 # Coefficients
 poly_log1 %>% 
   tidy() %>%
   kable(digits = 2, caption = 'Polynomial logistic regression model fitted to the online shopping dataset using all the varibles')
 ```
+
+1.  **PageValues is the most significant predictor with strong non-linear effects**: The linear term for *PageValues* (3.31, p \< 0.00) has the highest positive coefficient, indicating that higher page values significantly increase the likelihood of purchase. However, the squared term (*I(PageValues\^2)*, -1.07, p \< 0.00) and higher-order polynomial terms reveal a non-linear relationship, suggesting diminishing returns at very high page values. This aligns with the study's focus on leveraging clickstream data to predict purchasing intent, emphasizing the importance of high-value page interactions.
+
+2.  **ExitRates and BounceRates negatively impact purchasing intent**: Both *ExitRates* (-0.68, p = 0.01) and *BounceRates* (-0.60, p = 0.01) have significant negative coefficients, indicating that higher exit and bounce rates reduce the likelihood of purchase. While the polynomial terms for *ExitRates* are not statistically significant, the linear term underscores the importance of retaining visitors on the site to improve conversion rates, as highlighted in the study.
+
+3.  **Temporal factors show strong seasonal effects**: Months like *November* (0.51, p = 0.01) have a positive coefficient, indicating higher purchasing intent during this period, likely due to holiday shopping. Conversely, *February* (-1.71, p = 0.03), *December* (-0.74, p \< 0.00), *March* (-0.72, p \< 0.00), and *May* (-0.77, p \< 0.00) show significant negative coefficients, reflecting lower shopping activity during these months. These findings align with the study's emphasis on using session data to capture temporal patterns in shopper behavior.
+
+4.  **Visitor type and weekend visits influence purchasing intent**: *Returning_Visitor* (-0.54, p \< 0.00) has a significant negative coefficient, suggesting that returning visitors are less likely to purchase compared to new visitors. Additionally, *WeekendTRUE* (0.20, p = 0.03) has a positive coefficient, indicating that visits during weekends are associated with higher purchasing intent. These insights support the study's focus on combining visitor-type and temporal features to improve prediction accuracy.
 
 ------------------------------------------------------------------------
 
@@ -136,7 +112,7 @@ combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Misscl
 rownames(combined) <- c("Polynomial Logistic Regression")
 kable(combined)
 
-compar <- rbind(compar, combined)
+compar[2,] <- combined
 ```
 
 ------------------------------------------------------------------------

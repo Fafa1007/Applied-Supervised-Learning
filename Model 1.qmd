@@ -71,28 +71,18 @@ log_elas <- glmnet(train_dummies, as.numeric(unlist(y_train)), family = "binomia
 
 ## Inference/Interpretation
 
--   **Strongest Predictors**:
-
-    -   PageValues has the largest positive effect on the target variable, with a coefficient of 1.442, meaning a one-unit increase in PageValues increases the log-odds of the Revenue by 1.442.
-    -   ExitRates has the strongest negative effect, with a coefficient of -0.752, meaning a one-unit increase in ExitRates decreases the log-odds of Revenue by -0.752.
-    -   These variables play a critical role in influencing outcomes.
-
--   **Regularization Impact**:
-
-    -   Several variables (e.g., SpecialDay, MonthJune, OperatingSystems1, Browser1, Browser2, VisitorTypeReturning_Visitor) were excluded from the model due to regularization, highlighting the importance of feature selection in reducing overfitting.
-
--   **Temporal and Behavioral Insights**:
-
-    -   Months like November and July show positive effects, while February has a strong negative effect, suggesting seasonal trends. Visitor types like New_Visitor also positively influence outcomes, whereas Other visitor types have a negative effect.
-
--   **Negligible or Weak Effects**:
-
-    -   The following variables have minimal or negligible effects, indicating they contribute little to predicting the target variable: WeekendTRUE, Administrative, Administrative_Duration, Informational, ProductRelated, ProductRelated_Duration, BounceRates, MonthAug, MonthDec, MonthMar, MonthMay, MonthOct, MonthSep, OperatingSystems2, OperatingSystems3, OperatingSystems4, Browser3, Browser4, Browser5, Browser6, Browser8, Browser10, WeekendFALSE
-
 ```{r}
 # Coefficients
 coef(log_elas)
 ```
+
+1.  **PageValues and ExitRates are the most influential predictors**: The coefficient for *PageValues* (1.4418) is the highest positive value, indicating that visitors who view high-value pages are significantly more likely to have purchasing intent. Conversely, *ExitRates* has a strong negative coefficient (-0.7517), suggesting that higher exit rates are strongly associated with a lower likelihood of purchase, aligning with the study's focus on predicting shopping intent and abandonment.
+
+2.  **Duration-based features show mixed effects**: While *ProductRelated_Duration* (0.1110) has a positive coefficient, indicating that longer time spent on product-related pages increases purchase intent, *Administrative_Duration* (-0.0217) has a negative coefficient, implying that more time on administrative pages may reduce intent. This highlights the importance of differentiating between page types in predicting shopper behavior.
+
+3.  **Seasonal and visitor-type effects are significant**: Months like *July* (0.5088) and *November* (0.8363) have positive coefficients, suggesting higher purchase intent during these periods, while *February* (-1.1118) shows a strong negative effect. Additionally, *New_Visitor* (0.2957) has a positive coefficient, indicating that new visitors are more likely to purchase compared to other visitor types, which aligns with the study's emphasis on session and user information.
+
+4.  **Technical factors like browser and operating systems have nuanced impacts**: Certain browsers, such as *Browser5* (0.3971) and *Browser8* (0.4644), are positively associated with purchase intent, while *Browser3* (-0.3611) has a negative effect. Similarly, some operating systems (*OperatingSystems3* and *4*) show negative coefficients, suggesting that technical configurations can influence shopper behavior, though their impact is less pronounced compared to behavioral metrics like *PageValues* and *ExitRates*.
 
 ------------------------------------------------------------------------
 
@@ -139,7 +129,7 @@ combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Misscl
 rownames(combined) <- c("Logistic Regression with Elastic Regularisation")
 kable(combined)
 
-compar <- rbind(compar,combined)
+compar[1,] <- combined
 ```
 
 ------------------------------------------------------------------------

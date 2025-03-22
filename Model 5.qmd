@@ -8,6 +8,7 @@ Motivating clearly for our selected hyperparameters
 
 ```{r}
 library(randomForest)
+set.seed(4026)
 
 # Fit a basic Random Forest model with default hyperparameters
 rf <- randomForest(Revenue ~ ., data = train,
@@ -24,6 +25,7 @@ library(randomForest)
 library(caret)
 library(ranger) # built in parallelisation 
 library(dplyr)
+set.seed(4026)
 
 # Firstly, define a grid of hyperparameters to search over
 rf_grid <- expand.grid(mtry = 3:(ncol(train) - 1),
@@ -62,27 +64,23 @@ plot(varImp(rf_gridsearch))
 
 1.  **Top Important Features**:
 
-    -   **PageValues**: This is the most important feature, indicating that the monetary value of the pages visited by a user is a critical factor in predicting revenue generation. Higher `PageValues` are strongly associated with a higher likelihood of revenue.
+    -   **PageValues** and **ProductRelated_Duration** are the most critical features, directly supporting the study's focus on leveraging high-value page interactions and product-related engagement to predict purchasing intent. The study emphasizes that combining clickstream data (e.g., navigation paths) with session information significantly improves prediction accuracy. Higher `PageValues` indicate a stronger likelihood of revenue generation, while longer `ProductRelated_Duration` reflects deeper engagement with product-related content, both of which are key predictors of purchasing intent.
 
-    -   **ProductRelated_Duration**: The amount of time a user spends on product-related pages is the second most important feature. Longer durations may indicate higher engagement, which can lead to revenue generation.
-
-    -   **ExitRates**: The rate at which users leave the website from a specific page is also significant. Lower exit rates are likely associated with higher chances of revenue, as users are more engaged and less likely to leave without converting.
+    -   **ExitRates** also play a vital role, aligning with the study's second module on predicting site abandonment likelihood. Lower exit rates are associated with higher engagement and a reduced likelihood of users leaving the site without converting, which is critical for improving purchase conversion rates.
 
 2.  **Moderately Important Features**:
 
-    -   **ProductRelated**: The number of product-related pages visited by a user is moderately important. Users who visit more product-related pages are more likely to generate revenue.
+    -   **ProductRelated** and **Administrative_Duration** highlight the importance of user engagement with product-related pages and administrative tasks, respectively. The study uses aggregated pageview data and session information to predict purchasing intent, and these features contribute to understanding user behavior. Users who visit more product-related pages or spend time on administrative tasks (e.g., account management) are more likely to generate revenue, reinforcing the study's approach of combining multiple data sources for accurate predictions.
 
-    -   **Administrative_Duration**: The time spent on administrative pages also plays a role, though less significant than product-related engagement. This could indicate that users who spend time on administrative tasks (e.g., account management) may have a higher likelihood of generating revenue.
-
-    -   **BounceRates**: The bounce rate, or the percentage of single-page sessions, is moderately important. Lower bounce rates are associated with higher engagement and revenue potential.
+    -   **BounceRates** further underscores the study's focus on reducing site abandonment. Lower bounce rates indicate higher engagement, which is essential for improving conversion rates and aligns with the study's goal of identifying visitors at risk of abandoning the site.
 
 3.  **Less Important Features**:
 
-    -   **Informational_Duration** and **Informational**: The time spent on informational pages and the number of informational pages visited are less important. This suggests that while informational content is valuable, it has a smaller impact on revenue generation compared to product-related engagement.
+    -   **Informational_Duration** and **Informational** have a smaller impact on revenue generation compared to product-related engagement, reflecting the study's finding that while informational content is valuable, it is less predictive of purchasing intent than clickstream data from navigation paths.
 
-    -   **Month-related Features**: Features like `MonthFeb`, `MonthMar`, `MonthDec`, etc., have varying levels of importance, indicating that certain months may have a slight influence on revenue generation, but this is not as significant as other factors like `PageValues` or `ProductRelated_Duration`.
+    -   **Month-related Features** (e.g., `MonthFeb`, `MonthDec`) show varying importance, supporting the study's observation of seasonal trends in shopper behavior. While these features provide some predictive power, they are secondary to engagement metrics like `PageValues` and `ProductRelated_Duration`.
 
-    -   **VisitorType**: The type of visitor (e.g., Returning Visitor, Other) has some importance, but it is not as critical as engagement metrics like `PageValues` or `ProductRelated_Duration`.
+    -   **VisitorType** (e.g., Returning Visitor, Other) offers additional context but is less critical than engagement metrics. This aligns with the study's use of session information to refine predictions, where visitor type complements but does not overshadow the importance of behavioral data.
 
 **Partial Dependency Plots**
 
@@ -94,13 +92,13 @@ library(ranger)
 library(caret)
 
 predict_function <- function(model, newdata) {
-  predict(model, data = x_valid)$predictions
+  predict(model, data = newdata)$predictions
 }
 
 train_df <- as.data.frame(train)
 
 final_model <- rf_gridsearch$finalModel
-p1 <- partial(final_model, pred.var = "ProductRelated_Duration", train = x_train, .f = predict_function)
+p1 <- partial(final_model, "ProductRelated_Duration", train = as.matrix(x_train))
 
 ```
 
@@ -150,7 +148,7 @@ combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Misscl
 rownames(combined) <- c("Tuned Random Forest")
 kable(combined)
 
-compar <- rbind(compar, combined)
+compar[5,] <- combined
 ```
 
 ------------------------------------------------------------------------
