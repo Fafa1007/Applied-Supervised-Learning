@@ -13,8 +13,8 @@ tree_overfit <- tree(Revenue ~ ., data = train,
                         control = tree.control(nobs = nrow(na.omit(train)),
                                                mindev = 0.005))
 
-# Second, CV to find the best number of tree nodes to prune
-tree_cv <- cv.tree(tree_overfit, FUN = prune.misclass, k = 10) 
+# Second, 10 fold CV to find the best number of tree nodes to prune
+tree_cv <- cv.tree(tree_overfit, FUN = prune.misclass, K = 10) 
 #Use classification error rate for pruning
 ```
 
@@ -40,9 +40,6 @@ Pruned Tree Model
 ```{r}
 # The pruned Tree Model
 pruned_tree <- prune.misclass(tree_overfit, best = T)
-plot(pruned_tree)
-text(pruned_tree, pretty = 0)
-pruned_tree
 ```
 
 ------------------------------------------------------------------------
@@ -50,6 +47,31 @@ pruned_tree
 \newpage
 
 ## Inference/Interpretation
+
+1.  **Primary Split by PageValues and Month**:
+
+    -   The tree's root node splits the dataset into two main branches based on the `PageValues` feature. If `PageValues` is less than -0.262927 (63.76% of the data), the tree further splits based on the `Month` feature. For months like February, March, and May, the model predicts **no revenue (class 0)** with 100% confidence.
+
+    -   For other months, the prediction depends on additional splits, such as `ProductRelated_Duration`. This suggests that `PageValues` and `Month` are critical features for distinguishing between revenue-generating and non-revenue-generating visits, with certain months strongly indicating no revenue.
+
+2.  **Impact of BounceRates and PageValues on Revenue Generation**:
+
+    -   When `PageValues` exceeds -0.262927 (21.24% of the data), the tree evaluates `BounceRates`. If `BounceRates` is below -0.451897, the model predicts **revenue generation (class 1)** with high confidence (74.12%).
+
+    -   Further splits based on `PageValues` refine this prediction, with higher `PageValues` (\> 0.825014) increasing the probability of revenue generation to 85%. This indicates that low `BounceRates` and high `PageValues` are strong indicators of revenue generation.
+
+3.  **Interaction of ProductRelated_Duration and Month**:
+
+    -   In the branch where `BounceRates` exceeds -0.451897, the tree uses `Month` and `ProductRelated_Duration` to make predictions. For months like August, December, July, June, May, October, and September, the model predicts **no revenue (class 0)** if `ProductRelated_Duration` is above -0.0655534 (75.19% confidence).
+
+    -   However, for February, March, and November, the model leans toward **revenue generation (class 1)** (56.99% confidence).
+
+```{r}
+# Pruned Classification Tree
+plot(pruned_tree)
+text(pruned_tree, pretty = 0)
+pruned_tree
+```
 
 ------------------------------------------------------------------------
 
@@ -68,7 +90,7 @@ library(ROCR)
 pred_class <- predict(pruned_tree,x_valid, type = "class")
 
 # Secondly, create a confusion matrix
-yhat <- ifelse(pred_probabilities == 1,'Revenue', "No Revenue")
+yhat <- ifelse(pred_class == 1,'Revenue', "No Revenue")
 y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 'Revenue', "No Revenue"))
 cat("Confusion Matrix using Predicted Probabilities")
 (confmat <- table(yhat, y, dnn = c('Predicted label', 'True label')))
@@ -85,15 +107,17 @@ Accuracy <- caretmat$overall["Accuracy"]        # Accuracy
 Missclassification_Rate <- mean(yhat != y)
 
 # AUC (only works with binary data)
-yhat <- ifelse(pred_probabilities == 1, 1, 0)
+yhat <- ifelse(pred_class == 1, 1, 0)
 y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 1, 0))
 pred_obj <- prediction(y, yhat)
 ROC_AUC <- performance(pred_obj, measure = "auc")@y.values[[1]]
 
 # Lastly, put them all into a table
-compar <- rbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
-colnames(compar) <- c("Values")
-compar %>% kable(caption = "Logistic Regression with Elastic Regularisation Evaluation Metric")
+combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
+rownames(combined) <- c("Classification Tree")
+kable(combined)
+
+compar <- rbind(compar, combined)
 ```
 
 ------------------------------------------------------------------------

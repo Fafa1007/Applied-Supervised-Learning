@@ -30,7 +30,7 @@ set.seed(12)
 # Firstly, prepare the data for elastic-net regularization by creating dummy variables for factor columns
 train_dummies <- makeX(x_train)
 
-# Secondly, perform cross-validation to find the optimal alpha and lambda hyperparameters
+# Secondly, perform 10 fold cross-validation to find the optimal alpha and lambda hyperparameters
 elasticnet_cv <- cva.glmnet(train_dummies, as.numeric(unlist(y_train)), alpha = seq(0, 1, 0.1), nfolds = 10)
 
 # Thirdly, plot the cross-validation error against lambda for different fixed values of alpha
@@ -63,10 +63,6 @@ library(glmnet)
 
 # Fit a logistic regression model with elastic-net regularization using the best alpha and lambda
 log_elas <- glmnet(train_dummies, as.numeric(unlist(y_train)), family = "binomial", alpha = best_alpha, lambda = best_lambda, standardize = T)
-
-log_elas %>% 
-  tidy() %>%
-  kable(digits = 2, caption = paste('Logistic Regression Model With Elastic Regularisation and lambda is ',best_lambda, "and alpha", best_alpha))
 ```
 
 ------------------------------------------------------------------------
@@ -74,6 +70,29 @@ log_elas %>%
 \newpage
 
 ## Inference/Interpretation
+
+-   **Strongest Predictors**:
+
+    -   PageValues has the largest positive effect on the target variable, with a coefficient of 1.442, meaning a one-unit increase in PageValues increases the log-odds of the Revenue by 1.442.
+    -   ExitRates has the strongest negative effect, with a coefficient of -0.752, meaning a one-unit increase in ExitRates decreases the log-odds of Revenue by -0.752.
+    -   These variables play a critical role in influencing outcomes.
+
+-   **Regularization Impact**:
+
+    -   Several variables (e.g., SpecialDay, MonthJune, OperatingSystems1, Browser1, Browser2, VisitorTypeReturning_Visitor) were excluded from the model due to regularization, highlighting the importance of feature selection in reducing overfitting.
+
+-   **Temporal and Behavioral Insights**:
+
+    -   Months like November and July show positive effects, while February has a strong negative effect, suggesting seasonal trends. Visitor types like New_Visitor also positively influence outcomes, whereas Other visitor types have a negative effect.
+
+-   **Negligible or Weak Effects**:
+
+    -   The following variables have minimal or negligible effects, indicating they contribute little to predicting the target variable: WeekendTRUE, Administrative, Administrative_Duration, Informational, ProductRelated, ProductRelated_Duration, BounceRates, MonthAug, MonthDec, MonthMar, MonthMay, MonthOct, MonthSep, OperatingSystems2, OperatingSystems3, OperatingSystems4, Browser3, Browser4, Browser5, Browser6, Browser8, Browser10, WeekendFALSE
+
+```{r}
+# Coefficients
+coef(log_elas)
+```
 
 ------------------------------------------------------------------------
 
@@ -88,7 +107,7 @@ library(knitr)
 library(dplyr)
 library(ROCR)
 
-# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from the regularised logistic model
+# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from model
 x_valid_dummies <- makeX(x_valid)
 pred_probabilities <- predict(log_elas, newx = as.matrix(x_valid_dummies), type = "response")
 
@@ -116,9 +135,11 @@ pred_obj <- prediction(y, yhat)
 ROC_AUC <- performance(pred_obj, measure = "auc")@y.values[[1]]
 
 # Lastly, put them all into a table
-compar <- rbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
-colnames(compar) <- c("Values")
-compar %>% kable(caption = "Logistic Regression with Elastic Regularisation Evaluation Metric")
+combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
+rownames(combined) <- c("Logistic Regression with Elastic Regularisation")
+kable(combined)
+
+compar <- rbind(compar,combined)
 ```
 
 ------------------------------------------------------------------------

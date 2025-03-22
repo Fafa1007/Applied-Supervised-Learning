@@ -9,14 +9,10 @@ Motivating clearly for our selected hyperparameters
 ```{r}
 library(randomForest)
 
-# Firstly, fit a basic Random Forest model with default hyperparameters
+# Fit a basic Random Forest model with default hyperparameters
 rf <- randomForest(Revenue ~ ., data = train,
                            ntree = 1000,
                            na.action = na.exclude)
-
-# Secondly, calculating the missclassification error rate on the validation set
-rf_pred   <- predict(rf, newdata = valid)
-rf_mis   <- mean(as.numeric(unlist(y_valid)) != as.numeric(rf_pred))
 ```
 
 Hyperparameter Tuned Random Forest
@@ -30,12 +26,12 @@ library(ranger) # built in parallelisation
 library(dplyr)
 
 # Firstly, define a grid of hyperparameters to search over
-rf_grid <- expand.grid(mtry = 2:(ncol(train) - 1),
+rf_grid <- expand.grid(mtry = 3:(ncol(train) - 1),
              splitrule = c('gini', 'hellinger'),
              min.node.size = c(1, 5, 10))
 
-# Secondly, set up control parameters for the training process
-ctrl <- trainControl(method = 'oob', verboseIter = F)
+# Secondly, set up control parameters for the training process using 10 fold CV and OOB
+ctrl <- trainControl(method = 'oob', verboseIter = F, number = 10)
 
 # Lastly, perform a grid search to find the best hyperparameters using the ranger package
 # This is also our Tuned Random Forest Model
@@ -57,11 +53,64 @@ rf_gridsearch$bestTune
 
 ## Inference/Interpretation
 
+**Variable Importance Plot**
+
+```{r}
+# Variable Importance Plot 
+plot(varImp(rf_gridsearch))
+```
+
+1.  **Top Important Features**:
+
+    -   **PageValues**: This is the most important feature, indicating that the monetary value of the pages visited by a user is a critical factor in predicting revenue generation. Higher `PageValues` are strongly associated with a higher likelihood of revenue.
+
+    -   **ProductRelated_Duration**: The amount of time a user spends on product-related pages is the second most important feature. Longer durations may indicate higher engagement, which can lead to revenue generation.
+
+    -   **ExitRates**: The rate at which users leave the website from a specific page is also significant. Lower exit rates are likely associated with higher chances of revenue, as users are more engaged and less likely to leave without converting.
+
+2.  **Moderately Important Features**:
+
+    -   **ProductRelated**: The number of product-related pages visited by a user is moderately important. Users who visit more product-related pages are more likely to generate revenue.
+
+    -   **Administrative_Duration**: The time spent on administrative pages also plays a role, though less significant than product-related engagement. This could indicate that users who spend time on administrative tasks (e.g., account management) may have a higher likelihood of generating revenue.
+
+    -   **BounceRates**: The bounce rate, or the percentage of single-page sessions, is moderately important. Lower bounce rates are associated with higher engagement and revenue potential.
+
+3.  **Less Important Features**:
+
+    -   **Informational_Duration** and **Informational**: The time spent on informational pages and the number of informational pages visited are less important. This suggests that while informational content is valuable, it has a smaller impact on revenue generation compared to product-related engagement.
+
+    -   **Month-related Features**: Features like `MonthFeb`, `MonthMar`, `MonthDec`, etc., have varying levels of importance, indicating that certain months may have a slight influence on revenue generation, but this is not as significant as other factors like `PageValues` or `ProductRelated_Duration`.
+
+    -   **VisitorType**: The type of visitor (e.g., Returning Visitor, Other) has some importance, but it is not as critical as engagement metrics like `PageValues` or `ProductRelated_Duration`.
+
+**Partial Dependency Plots**
+
+```{r}
+library(gridExtra)
+library(grid)
+library(pdp)
+library(ranger)
+library(caret)
+
+predict_function <- function(model, newdata) {
+  predict(model, data = x_valid)$predictions
+}
+
+train_df <- as.data.frame(train)
+
+final_model <- rf_gridsearch$finalModel
+p1 <- partial(final_model, pred.var = "ProductRelated_Duration", train = x_train, .f = predict_function)
+
+```
+
 ------------------------------------------------------------------------
 
 \newpage
 
 ## Model Evaluation
+
+Model Evaluation of Tuned Random Forest Model
 
 ```{r}
 library(MLmetrics)
@@ -70,11 +119,11 @@ library(knitr)
 library(dplyr)
 library(ROCR)
 
-# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from the regularised logistic model
+# Firstly, get predicted probabilities or predicted classe (gives the same conclusions) from the model
 pred_class <- predict(rf_gridsearch,x_valid)
 
 # Secondly, create a confusion matrix
-yhat <- ifelse(pred_probabilities == 1,'Revenue', "No Revenue")
+yhat <- ifelse(pred_class == 1,'Revenue', "No Revenue")
 y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 'Revenue', "No Revenue"))
 cat("Confusion Matrix using Predicted Probabilities")
 (confmat <- table(yhat, y, dnn = c('Predicted label', 'True label')))
@@ -91,15 +140,17 @@ Accuracy <- caretmat$overall["Accuracy"]        # Accuracy
 Missclassification_Rate <- mean(yhat != y)
 
 # AUC (only works with binary data)
-yhat <- ifelse(pred_probabilities == 1, 1, 0)
+yhat <- ifelse(pred_class == 1, 1, 0)
 y <- matrix(ifelse(as.numeric(unlist(y_valid))==2, 1, 0))
 pred_obj <- prediction(y, yhat)
 ROC_AUC <- performance(pred_obj, measure = "auc")@y.values[[1]]
 
 # Lastly, put them all into a table
-compar <- rbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
-colnames(compar) <- c("Values")
-compar %>% kable(caption = "Logistic Regression with Elastic Regularisation Evaluation Metric")
+combined <- cbind(Sensitivity, Specificity, Precision, F1_score,Accuracy, Missclassification_Rate, ROC_AUC)
+rownames(combined) <- c("Tuned Random Forest")
+kable(combined)
+
+compar <- rbind(compar, combined)
 ```
 
 ------------------------------------------------------------------------
