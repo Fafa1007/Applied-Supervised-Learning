@@ -4,7 +4,11 @@ Apply 10-fold cross-validation throughout to measure classification accuracy
 
 ## Modelling decision threshold of 0.5
 
+<<<<<<< HEAD
 ```{R}
+=======
+```{R}         
+>>>>>>> b8a9f5b494dad67a6e799d27bcbde0f629e98445
 #| warning: false
 
 library(caret)        
@@ -44,6 +48,7 @@ plot(gbm_model)
 
 save(gbm_model, file = 'R Data/Gradient Boosted Model.Rdata')
 ```
+
 ------------------------------------------------------------------------
 
 ## Model Evaluation
@@ -94,6 +99,7 @@ compar[6,] <- combined
 ## Inference/Interpretation
 
 Variable Importance Plots
+
 ```{r}
 # Variable Importance Plots
 plot.new()
@@ -106,6 +112,7 @@ calif_gbm_varimp <- summary(calif_fe_gbm, n.trees = d, las = 1, xlim = c(0, 50))
 ```
 
 Partial Dependency Plots
+
 ```{r}
 # Partial Dependency Plots
 
@@ -151,7 +158,6 @@ for (i in seq_i) {
 
 ## Optimising F1 Score
 
-```{r}
 #| warning: false
 #| message: false
 
@@ -238,6 +244,7 @@ mf_gbm
 \newpage
 
 ## Prediction
+
 ```{r}
 # Prediction of the 
 dat <- train
